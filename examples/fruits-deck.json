@@ -1,0 +1,35 @@
+{
+   "title": "Fruits",
+   "cards": [
+      {
+         "kanji": "りんご",
+         "kana": "りんご",
+         "romaji": "ringo",
+         "meaning": "apple"
+      },
+      {
+         "kanji": "バナナ",
+         "kana": "バナナ",
+         "romaji": "banana",
+         "meaning": "banana"
+      },
+      {
+         "kanji": "苺",
+         "kana": "いちご",
+         "romaji": "ichigo",
+         "meaning": "strawberry"
+      },
+      {
+         "kanji": "桃",
+         "kana": "もも",
+         "romaji": "momo",
+         "meaning": "peach"
+      },
+      {
+         "kanji": "葡萄",
+         "kana": "ぶどう",
+         "romaji": "budou",
+         "meaning": "grape"
+      }
+   ]
+}

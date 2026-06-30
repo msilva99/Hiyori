@@ -1,0 +1,41 @@
+{
+   "title": "Colors",
+   "cards": [
+      {
+         "kanji": "赤",
+         "kana": "あか",
+         "romaji": "aka",
+         "meaning": "red"
+      },
+      {
+         "kanji": "青",
+         "kana": "あお",
+         "romaji": "ao",
+         "meaning": "blue"
+      },
+      {
+         "kanji": "黄色",
+         "kana": "きいろ",
+         "romaji": "kiiro",
+         "meaning": "yellow"
+      },
+      {
+         "kanji": "緑",
+         "kana": "みどり",
+         "romaji": "midori",
+         "meaning": "green"
+      },
+      {
+         "kanji": "白",
+         "kana": "しろ",
+         "romaji": "shiro",
+         "meaning": "white"
+      },
+      {
+         "kanji": "黒",
+         "kana": "くろ",
+         "romaji": "kuro",
+         "meaning": "black"
+      }
+   ]
+}
