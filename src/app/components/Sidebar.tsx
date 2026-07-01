@@ -75,17 +75,29 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
                </nav>
             </div>
 
-             <ThemeToggle />
              <div className="space-y-2 pt-8 border-t border-border-hiyori">
-               <Link to="#" onClick={() => onClose?.()} className="flex items-center gap-3 px-4 py-3 rounded-2xl text-ink-muted hover:bg-page hover:text-ink transition-all">
-                  <Settings className="w-5 h-5" strokeWidth={2} />
-                  <span>Settings</span>
-               </Link>
-               <Link to="#" onClick={() => onClose?.()} className="flex items-center gap-3 px-4 py-3 rounded-2xl text-ink-muted hover:bg-page hover:text-ink transition-all">
-                  <HelpCircle className="w-5 h-5" strokeWidth={2} />
-                  <span>About</span>
-               </Link>
-            </div>
+                <ThemeToggle />
+                <button
+                   disabled
+                   className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-ink-faint opacity-60 cursor-not-allowed transition-all"
+                >
+                   <Settings className="w-5 h-5" strokeWidth={2} />
+                   <span>Settings</span>
+                   <span className="ml-auto text-[10px] uppercase font-bold tracking-wider text-ink-faint bg-surface-hover px-2 py-0.5 rounded-full">
+                      Soon
+                   </span>
+                </button>
+                <button
+                   disabled
+                   className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-ink-faint opacity-60 cursor-not-allowed transition-all"
+                >
+                   <HelpCircle className="w-5 h-5" strokeWidth={2} />
+                   <span>About</span>
+                   <span className="ml-auto text-[10px] uppercase font-bold tracking-wider text-ink-faint bg-surface-hover px-2 py-0.5 rounded-full">
+                      Soon
+                   </span>
+                </button>
+             </div>
          </>
          );
       }
