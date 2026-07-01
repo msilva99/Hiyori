@@ -1,0 +1,25 @@
+{
+   "title": "Numbers",
+   "cards": [
+      { "kanji": "一", "kana": "いち", "romaji": "ichi", "meaning": "one" },
+      { "kanji": "二", "kana": "に", "romaji": "ni", "meaning": "two" },
+      { "kanji": "三", "kana": "さん", "romaji": "san", "meaning": "three" },
+      { "kanji": "四", "kana": "よん", "romaji": "yon", "meaning": "four" },
+      { "kanji": "五", "kana": "ご", "romaji": "go", "meaning": "five" },
+      { "kanji": "六", "kana": "ろく", "romaji": "roku", "meaning": "six" },
+      { "kanji": "七", "kana": "なな", "romaji": "nana", "meaning": "seven" },
+      { "kanji": "八", "kana": "はち", "romaji": "hachi", "meaning": "eight" },
+      { "kanji": "九", "kana": "きゅう", "romaji": "kyuu", "meaning": "nine" },
+      { "kanji": "十", "kana": "じゅう", "romaji": "juu", "meaning": "ten" },
+      { "kanji": "十一", "kana": "じゅういち", "romaji": "juuichi", "meaning": "eleven" },
+      { "kanji": "十二", "kana": "じゅうに", "romaji": "juuni", "meaning": "twelve" },
+      { "kanji": "十三", "kana": "じゅうさん", "romaji": "juusan", "meaning": "thirteen" },
+      { "kanji": "十四", "kana": "じゅうよん", "romaji": "juuyon", "meaning": "fourteen" },
+      { "kanji": "十五", "kana": "じゅうご", "romaji": "juugo", "meaning": "fifteen" },
+      { "kanji": "十六", "kana": "じゅうろく", "romaji": "juuroku", "meaning": "sixteen" },
+      { "kanji": "十七", "kana": "じゅうなな", "romaji": "juunana", "meaning": "seventeen" },
+      { "kanji": "十八", "kana": "じゅうはち", "romaji": "juuhachi", "meaning": "eighteen" },
+      { "kanji": "十九", "kana": "じゅうきゅう", "romaji": "juukyuu", "meaning": "nineteen" },
+      { "kanji": "二十", "kana": "にじゅう", "romaji": "nijuu", "meaning": "twenty" }
+   ]
+}

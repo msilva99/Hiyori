@@ -1,41 +1,25 @@
 {
    "title": "Colors",
    "cards": [
-      {
-         "kanji": "赤",
-         "kana": "あか",
-         "romaji": "aka",
-         "meaning": "red"
-      },
-      {
-         "kanji": "青",
-         "kana": "あお",
-         "romaji": "ao",
-         "meaning": "blue"
-      },
-      {
-         "kanji": "黄色",
-         "kana": "きいろ",
-         "romaji": "kiiro",
-         "meaning": "yellow"
-      },
-      {
-         "kanji": "緑",
-         "kana": "みどり",
-         "romaji": "midori",
-         "meaning": "green"
-      },
-      {
-         "kanji": "白",
-         "kana": "しろ",
-         "romaji": "shiro",
-         "meaning": "white"
-      },
-      {
-         "kanji": "黒",
-         "kana": "くろ",
-         "romaji": "kuro",
-         "meaning": "black"
-      }
+      { "kanji": "赤", "kana": "あか", "romaji": "aka", "meaning": "red" },
+      { "kanji": "青", "kana": "あお", "romaji": "ao", "meaning": "blue" },
+      { "kanji": "黄色", "kana": "きいろ", "romaji": "kiiro", "meaning": "yellow" },
+      { "kanji": "緑", "kana": "みどり", "romaji": "midori", "meaning": "green" },
+      { "kanji": "白", "kana": "しろ", "romaji": "shiro", "meaning": "white" },
+      { "kanji": "黒", "kana": "くろ", "romaji": "kuro", "meaning": "black" },
+      { "kanji": "茶色", "kana": "ちゃいろ", "romaji": "chairo", "meaning": "brown" },
+      { "kanji": "灰色", "kana": "はいいろ", "romaji": "haiiro", "meaning": "gray" },
+      { "kanji": "紫", "kana": "むらさき", "romaji": "murasaki", "meaning": "purple" },
+      { "kanji": "ピンク", "kana": "ぴんく", "romaji": "pinku", "meaning": "pink" },
+      { "kanji": "オレンジ色", "kana": "おれんじいろ", "romaji": "orenjiiro", "meaning": "orange" },
+      { "kanji": "金色", "kana": "きんいろ", "romaji": "kiniro", "meaning": "gold" },
+      { "kanji": "銀色", "kana": "ぎんいろ", "romaji": "giniro", "meaning": "silver" },
+      { "kanji": "水色", "kana": "みずいろ", "romaji": "mizuiro", "meaning": "light blue" },
+      { "kanji": "紺色", "kana": "こんいろ", "romaji": "koniro", "meaning": "navy blue" },
+      { "kanji": "黄緑", "kana": "きみどり", "romaji": "kimidori", "meaning": "light green" },
+      { "kanji": "ベージュ", "kana": "べーじゅ", "romaji": "beeju", "meaning": "beige" },
+      { "kanji": "クリーム色", "kana": "くりーむいろ", "romaji": "kuriimuiro", "meaning": "cream" },
+      { "kanji": "えんじ色", "kana": "えんじいろ", "romaji": "enjiiro", "meaning": "maroon" },
+      { "kanji": "ターコイズ", "kana": "たーこいず", "romaji": "taakoizu", "meaning": "turquoise" }
    ]
 }

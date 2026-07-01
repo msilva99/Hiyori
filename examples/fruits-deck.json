@@ -1,35 +1,25 @@
 {
    "title": "Fruits",
    "cards": [
-      {
-         "kanji": "りんご",
-         "kana": "りんご",
-         "romaji": "ringo",
-         "meaning": "apple"
-      },
-      {
-         "kanji": "バナナ",
-         "kana": "バナナ",
-         "romaji": "banana",
-         "meaning": "banana"
-      },
-      {
-         "kanji": "苺",
-         "kana": "いちご",
-         "romaji": "ichigo",
-         "meaning": "strawberry"
-      },
-      {
-         "kanji": "桃",
-         "kana": "もも",
-         "romaji": "momo",
-         "meaning": "peach"
-      },
-      {
-         "kanji": "葡萄",
-         "kana": "ぶどう",
-         "romaji": "budou",
-         "meaning": "grape"
-      }
+      { "kanji": "りんご", "kana": "りんご", "romaji": "ringo", "meaning": "apple" },
+      { "kanji": "バナナ", "kana": "ばなな", "romaji": "banana", "meaning": "banana" },
+      { "kanji": "みかん", "kana": "みかん", "romaji": "mikan", "meaning": "mandarin orange" },
+      { "kanji": "オレンジ", "kana": "おれんじ", "romaji": "orenji", "meaning": "orange" },
+      { "kanji": "ぶどう", "kana": "ぶどう", "romaji": "budou", "meaning": "grapes" },
+      { "kanji": "いちご", "kana": "いちご", "romaji": "ichigo", "meaning": "strawberry" },
+      { "kanji": "桃", "kana": "もも", "romaji": "momo", "meaning": "peach" },
+      { "kanji": "梨", "kana": "なし", "romaji": "nashi", "meaning": "pear" },
+      { "kanji": "さくらんぼ", "kana": "さくらんぼ", "romaji": "sakuranbo", "meaning": "cherry" },
+      { "kanji": "スイカ", "kana": "すいか", "romaji": "suika", "meaning": "watermelon" },
+      { "kanji": "メロン", "kana": "めろん", "romaji": "meron", "meaning": "melon" },
+      { "kanji": "パイナップル", "kana": "ぱいなっぷる", "romaji": "painappuru", "meaning": "pineapple" },
+      { "kanji": "レモン", "kana": "れもん", "romaji": "remon", "meaning": "lemon" },
+      { "kanji": "キウイ", "kana": "きうい", "romaji": "kiui", "meaning": "kiwi" },
+      { "kanji": "柿", "kana": "かき", "romaji": "kaki", "meaning": "persimmon" },
+      { "kanji": "マンゴー", "kana": "まんごー", "romaji": "mangoo", "meaning": "mango" },
+      { "kanji": "アボカド", "kana": "あぼかど", "romaji": "abokado", "meaning": "avocado" },
+      { "kanji": "ブルーベリー", "kana": "ぶるーべりー", "romaji": "buruuberii", "meaning": "blueberry" },
+      { "kanji": "ラズベリー", "kana": "らずべりー", "romaji": "razuberii", "meaning": "raspberry" },
+      { "kanji": "グレープフルーツ", "kana": "ぐれーぷふるーつ", "romaji": "gureepufuruutsu", "meaning": "grapefruit" }
    ]
 }
