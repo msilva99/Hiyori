@@ -27,7 +27,13 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
+    "publisher": "Hiyori",
+    "windows": {
+      "nsis": {
+        "installMode": "both"
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,5 +41,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJDRkNCRDEyOTY3M0NEMTQKUldRVXpYT1dFcjM4TEMwcDR3NnpEZis3Z0s0UUtqcmdpbC8zc2d1Z2lucTBUd2UvVkRvUk0rd1oK",
+      "endpoints": [
+        "https://github.com/msilva99/Hiyori/releases/latest/download/updater.json"
+      ]
+    }
   }
 }

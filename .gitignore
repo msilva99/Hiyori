@@ -1,4 +1,4 @@
-.DS_STORE
+.DS_Store
 node_modules
 scripts/flow/*/.flowconfig
 .flowconfig
@@ -45,3 +45,8 @@ packages/react-devtools-shell/dist
 packages/react-devtools-timeline/dist
 
 dist
+private
+
+# Environment and secrets
+.env
+.tauri/

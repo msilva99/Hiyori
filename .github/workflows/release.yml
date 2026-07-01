@@ -1,0 +1,72 @@
+name: Release
+on:
+  push:
+    tags: [v*]
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm run tauri build
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+
+      - name: Get version
+        id: version
+        shell: pwsh
+        run: |
+          $ver = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.sig
+
+  create-release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+
+      - name: Build updater.json
+        shell: bash
+        run: |
+          VERSION="${{ needs.build-windows.outputs.version }}"
+          EXE=$(ls *.exe | head -1)
+          SIG_FILE=$(ls *.sig | head -1)
+          SIGNATURE=$(cat "$SIG_FILE" | tr -d '\n')
+          URL="https://github.com/msilva99/Hiyori/releases/download/v${VERSION}/${EXE}"
+          jq -n \
+            --arg v "$VERSION" \
+            --arg url "$URL" \
+            --arg sig "$SIGNATURE" \
+            '{version: $v, notes: "See https://github.com/msilva99/Hiyori/releases/tag/v\($v)", pub_date: (now | todate), platforms: {"windows-x86_64": {signature: $sig, url: $url}}}' \
+            > updater.json
+          cat updater.json
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.exe
+            *.sig
+            updater.json
+          generate_release_notes: true
