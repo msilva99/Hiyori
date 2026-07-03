@@ -29,12 +29,17 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
    return (
       <>
          <div>
-            <div className="flex items-center gap-3 mb-10 px-2">
-               <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm overflow-hidden">
-                  🦊
-               </div>
-               <span className="text-2xl font-bold tracking-tight text-ink">hiyori</span>
-            </div>
+             <div className="flex items-center gap-3 mb-10 px-2">
+                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm overflow-hidden">
+                   🦊
+                </div>
+                <span className="text-2xl font-bold tracking-tight text-ink">Hiyori</span>
+                {onClose && (
+                   <button onClick={onClose} className="ml-auto p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-xl transition-colors cursor-pointer">
+                      <X className="w-5 h-5" />
+                   </button>
+                )}
+             </div>
 
             <nav className="space-y-2">
                {navItems.map((item) => {
@@ -114,13 +119,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
       {isOpen && (
          <div className="xl:hidden fixed inset-0 z-50">
             <div className="fixed inset-0 bg-black/30" onClick={onClose} />
-            <aside className="fixed top-0 left-0 w-70 h-screen bg-surface border-r border-border-hiyori flex flex-col justify-between py-8 px-6 shadow-lg z-10">
-               <div className="flex items-center justify-end px-2 mb-2">
-                  <button onClick={onClose} className="p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-xl transition-colors cursor-pointer">
-                     <X className="w-5 h-5" />
-                  </button>
-               </div>
-               <SidebarNav onClose={onClose} />
+             <aside className="fixed top-0 left-0 w-70 h-screen bg-surface border-r border-border-hiyori flex flex-col justify-between py-8 px-6 shadow-lg z-10">
+                <SidebarNav onClose={onClose} />
             </aside>
          </div>
       )}

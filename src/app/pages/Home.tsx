@@ -369,19 +369,7 @@ initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ del
          <h3 className="font-bold text-lg text-ink mb-1 group-hover:text-brand transition-colors">{deck.title}</h3>
          <p className="text-ink-muted text-sm mb-6">{deck.cards.length} cards • {lastStudied}</p>
       </div>
-      
-      <div>
-         <div className="flex justify-between items-end mb-2">
-            <span className="text-sm font-bold text-ink">Ready</span>
-            <span className="text-xs text-ink-muted font-medium">{deck.cards.length} cards</span>
-         </div>
-         <div className="w-full bg-surface-hover rounded-full h-2 overflow-hidden">
-            <div 
-            className="bg-success h-2 rounded-full transition-all duration-1000 ease-out" 
-            style={{ width: deck.cards.length > 0 ? "100%" : "0%" }} 
-            />
-         </div>
-      </div>
+
    </Link>
    ))}
 </div>

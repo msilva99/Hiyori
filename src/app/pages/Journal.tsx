@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { createPortal } from "react-dom";
 import type { JournalEntry, JournalSlot } from "../data/types";
 import { useDecksStore } from "../store/decksStore";
 import { useJournalStore } from "../store/journalStore";
@@ -22,13 +23,12 @@ import {
    Heart,
    Smile,
    Frown,
-   BookA,
-   Search,
-   CalendarDays
+
+    CalendarDays,
+    Trash2
 } from "lucide-react";
 import { format, subDays, addDays, isToday, parseISO } from "date-fns";
 import { cn } from "../../lib/utils";
-import { Dictionary } from "./Dictionary";
 
 // Mock known words from decks to highlight. Later this should come from real deck storage.
 // const deckWords = ['私', '猫', '食べる', 'ありがとう', 'おはよう', '今日', '美味しい', 'watashi', 'neko', 'taberu'];
@@ -93,7 +93,8 @@ export function Journal() {
 
    
    const entries = useJournalStore((state) => state.journalEntries);
-   const saveJournalEntry = useJournalStore((state) => state.saveJournalEntry);
+    const saveJournalEntry = useJournalStore((state) => state.saveJournalEntry);
+    const deleteJournalEntry = useJournalStore((state) => state.deleteJournalEntry);
    const decks = useDecksStore((state) => state.decks);
    
    // The journal is date-driven: currentDate chooses which entry is shown or edited.
@@ -107,9 +108,8 @@ export function Journal() {
    const [editBody, setEditBody] = useState("");
    const [editSlots, setEditSlots] = useState<JournalSlot[]>([]);
    
-   // Side panel state. Dictionary remains out of active product scope, but the old panel exists.
-   const [showDictionary, setShowDictionary] = useState(false);
-   const [showIconPickerFor, setShowIconPickerFor] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showIconPickerFor, setShowIconPickerFor] = useState<string | null>(null);
       
    // Derived value: the entry for whichever day the user is currently viewing.
    const currentDateKey = format(currentDate, "yyyy-MM-dd");
@@ -147,23 +147,35 @@ export function Journal() {
       setMode('edit');
    };
    
-   const handleSave = () => {
-      // Save replaces the current day's entry or creates a new one for that date.
-      const savedAt = new Date().toISOString();
-      const newEntry: JournalEntry = {
-         id: currentEntry ? currentEntry.id : Date.now().toString(),
-         date: currentDateKey,
-         title: editTitle || "Untitled Entry",
-         body: editBody,
-         slots: editSlots,
-         createdAt: currentEntry ? currentEntry.createdAt : savedAt,
-         updatedAt: savedAt,
-      };
+    const handleSave = () => {
+       // Save replaces the current day's entry or creates a new one for that date.
+       const savedAt = new Date().toISOString();
+       const newEntry: JournalEntry = {
+          id: currentEntry ? currentEntry.id : Date.now().toString(),
+          date: currentDateKey,
+          title: editTitle || "Untitled Entry",
+          body: editBody,
+          slots: editSlots,
+          createdAt: currentEntry ? currentEntry.createdAt : savedAt,
+          updatedAt: savedAt,
+       };
 
-      
-      saveJournalEntry(newEntry);
-      setMode('view');
-   };
+       
+       saveJournalEntry(newEntry);
+       setMode('view');
+    };
+
+    const handleDelete = () => {
+       if (!currentEntry) return;
+       setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = () => {
+       if (!currentEntry) return;
+       deleteJournalEntry(currentEntry.id);
+       setShowDeleteConfirm(false);
+       setMode('view');
+    };
    
    const addSlot = () => {
       // Slots are short metadata chips for the entry, capped at three to keep the page calm.
@@ -208,157 +220,153 @@ export function Journal() {
    //    });
    // };
       
-   return (
-      <div className="flex h-[calc(100vh-80px)] font-sans max-w-6xl mx-auto w-full gap-8 relative">
+return (
+    <>
+       <div className="flex min-h-[calc(100vh-80px)] font-sans max-w-6xl mx-auto w-full gap-8 relative">
          
          {/* Main Content Area */}
-         <div className={cn("flex-1 flex flex-col transition-all duration-300", showDictionary ? "max-w-[calc(100%-380px)]" : "max-w-3xl mx-auto w-full")}>
+          <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full transition-all duration-300">
             
-            {/* Header Navigation */}
-            <div className="flex items-center justify-between mb-8 shrink-0 relative z-40">
-               <div className="flex items-center gap-4">
-                  <button 
-                     onClick={handlePrevDay}
-                     className="p-2 rounded-full hover:bg-surface-hover text-ink-muted hover:text-ink transition-colors"
-                  >
-                     <ChevronLeft className="w-6 h-6" />
-                  </button>
-               
-                  {/* Clickable Date with History Popover */}
-                  <div className="relative">
-                     <button 
-                        onClick={() => setShowHistory(!showHistory)}
-                        className="text-center min-w-40 group flex flex-col items-center justify-center px-4 py-2 rounded-2xl hover:bg-page transition-all hover:shadow-sm border border-transparent hover:border-border-hiyori"
-                        >
-                        <div className="flex items-center gap-2">
-                           <h2 className="text-2xl font-black text-ink capitalize tracking-tight group-hover:text-brand transition-colors">
-                              {isToday(currentDate) ? "Today" : format(currentDate, "EEEE")}
-                           </h2>
-                           <CalendarDays className="w-5 h-5 text-ink-muted group-hover:text-brand transition-colors" />
-                        </div>
-                        <span className="text-ink-muted text-sm font-medium">{format(currentDate, "MMMM d, yyyy")}</span>
-                     </button>
-                     
-                     <AnimatePresence>
-                        {showHistory && (
-                           <>
-                              <div
-                                 className="fixed inset-0"
-                                 style={{ pointerEvents: "none" }}
-                                 onClick={() => setShowHistory(false)}
-                              />
-                              <motion.div 
-                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                 transition={{ duration: 0.15 }}
-                                 className="absolute top-full left-0 mt-2 w-[320px] bg-surface rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-border-hiyori flex flex-col max-h-100"
-                              >
-                                 <div className="p-4 border-b border-border-hiyori bg-page flex items-center justify-between sticky top-0 z-10">
-                                    <span className="font-bold text-ink">Entry History</span>
-                                    <span className="text-xs font-bold bg-brand/10 text-brand px-2.5 py-1 rounded-md">{entries.length} entries</span>
-                                 </div>
-                                 <div >
-                                    {entries.length === 0 ? (
-                                       <div className="p-8 text-center text-ink-muted text-sm font-medium">No past entries yet.</div>
-                                       ) : (
-                                       [...entries].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map(entry => {
-                                          const isActive = entry.date === currentDateKey;
-                                          return (
-                                          <button
-                                             key={entry.id}
-                                             onClick={() => {
-                                                setCurrentDate(parseISO(entry.date));
-                                                setMode('view');
-                                                setShowHistory(false);
-                                          }}
-                                          className={cn(
-                                             "w-full text-left p-4 border-b border-border-hiyori last:border-0 transition-colors flex flex-col gap-2 group",
-                                             isActive ? "bg-surface-hover" : "hover:bg-page"
-                                             )}
-                                             >
-                                             <div className="flex justify-between items-start gap-2">
-                                                <span className={cn(
-                                                "font-bold truncate flex-1 transition-colors", 
-                                                isActive ? "text-brand" : "text-ink group-hover:text-brand"
-                                                )}>
-                                                {entry.title || "Untitled"}
-                                             </span>
-                                             <span className={cn(
-                                             "text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded-full transition-colors",
-                                             isActive ? "bg-brand text-white" : "bg-border-hiyori text-ink-muted"
-                                             )}>
-                                             {format(parseISO(entry.date), "MMM d")}
-                                          </span>
-                                       </div>
-                                          <p className="text-sm text-ink-muted line-clamp-2 leading-relaxed">
-                                             {entry.body || <span className="italic opacity-50">No content</span>}
-                                          </p>
-                                       </button>
-                                       );
-                                       })
-                                    )}
-                                 </div>
-                              </motion.div>
-                           </>
-                        )}
-                     </AnimatePresence>
-                  </div>
-                  
+             {/* Header Navigation */}
+             <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between mb-8 shrink-0 relative z-40 gap-3">
+                <div className="flex items-center justify-center sm:justify-start gap-4 w-full sm:w-auto">
                    <button 
-                      onClick={handleNextDay}
-                      disabled={isToday(currentDate)}
-                      className="p-2 rounded-full hover:bg-surface-hover text-ink-muted hover:text-ink transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                      onClick={handlePrevDay}
+                      className="p-2 rounded-full hover:bg-surface-hover text-ink-muted hover:text-ink transition-colors shrink-0"
                    >
-                      <ChevronRight className="w-6 h-6" />
+                      <ChevronLeft className="w-6 h-6" />
                    </button>
-                   <button
-                      onClick={() => setCurrentDate(new Date())}
-                      disabled={isToday(currentDate)}
-                      className="px-3 py-1.5 text-xs font-bold rounded-xl bg-surface-hover text-ink-muted hover:bg-brand hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-surface-hover disabled:hover:text-ink-muted"
-                   >
-                      Today
-                   </button>
-                </div>
-          
-                <div className="flex items-center gap-3">
-                  <button 
-                     onClick={() => setShowDictionary(!showDictionary)}
-                     className={cn(
-                        "flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm border",
-                        showDictionary 
-                        ? "bg-brand border-brand text-white" 
-                        : "bg-surface border-border-hiyori text-ink-muted hover:bg-page hover:text-ink"
-                        )}
-                        >
-                        {showDictionary ? <X className="w-5 h-5" /> : <BookA className="w-5 h-5" />}
-                        {showDictionary ? "Close Dict" : "Dictionary"}
-                  </button>
-                  
-                  {mode === 'view' ? (
-                     <button 
-                        onClick={startWriting}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-success text-white font-bold hover:bg-success-hover transition-all shadow-sm shadow-success/20"
-                     >
-                        <PenTool className="w-5 h-5" /> {currentEntry ? "Edit Entry" : "Write"}
-                     </button>
-                  ) : (
-                     <button 
-                        onClick={handleSave}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-success text-white font-bold hover:bg-success-hover transition-all shadow-sm shadow-success/20"
-                     >
-                        <Save className="w-5 h-5" /> Save Entry
-                     </button>
-                  )}
-               </div>
-            </div>
+                
+                   {/* Clickable Date with History Popover */}
+                   <div className="relative">
+                      <button 
+                         onClick={() => setShowHistory(!showHistory)}
+                         className="text-center min-w-40 group flex flex-col items-center justify-center px-4 py-2 rounded-2xl hover:bg-page transition-all hover:shadow-sm border border-transparent hover:border-border-hiyori"
+                         >
+                         <div className="flex items-center gap-2">
+                            <h2 className="text-2xl font-black text-ink capitalize tracking-tight group-hover:text-brand transition-colors">
+                               {isToday(currentDate) ? "Today" : format(currentDate, "EEEE")}
+                            </h2>
+                            <CalendarDays className="w-5 h-5 text-ink-muted group-hover:text-brand transition-colors" />
+                         </div>
+                         <span className="text-ink-muted text-sm font-medium">{format(currentDate, "MMMM d, yyyy")}</span>
+                      </button>
+                      
+                      <AnimatePresence>
+                         {showHistory && (
+                            <>
+                               <div
+                                  className="fixed inset-0"
+                                  style={{ pointerEvents: "none" }}
+                                  onClick={() => setShowHistory(false)}
+                               />
+                               <motion.div 
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[90vw] sm:w-[320px] bg-surface rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-border-hiyori flex flex-col max-h-100"
+                               >
+                                  <div className="p-4 border-b border-border-hiyori bg-page flex items-center justify-between sticky top-0 z-10">
+                                     <span className="font-bold text-ink">Entry History</span>
+                                     <span className="text-xs font-bold bg-brand/10 text-brand px-2.5 py-1 rounded-md">{entries.length} entries</span>
+                                  </div>
+                                  <div >
+                                     {entries.length === 0 ? (
+                                        <div className="p-8 text-center text-ink-muted text-sm font-medium">No past entries yet.</div>
+                                        ) : (
+                                        [...entries].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map(entry => {
+                                           const isActive = entry.date === currentDateKey;
+                                           return (
+                                           <button
+                                              key={entry.id}
+                                              onClick={() => {
+                                                 setCurrentDate(parseISO(entry.date));
+                                                 setMode('view');
+                                                 setShowHistory(false);
+                                           }}
+                                           className={cn(
+                                              "w-full text-left p-4 border-b border-border-hiyori last:border-0 transition-colors flex flex-col gap-2 group",
+                                              isActive ? "bg-surface-hover" : "hover:bg-page"
+                                              )}
+                                              >
+                                              <div className="flex justify-between items-start gap-2">
+                                                 <span className={cn(
+                                                 "font-bold truncate flex-1 transition-colors", 
+                                                 isActive ? "text-brand" : "text-ink group-hover:text-brand"
+                                                 )}>
+                                                 {entry.title || "Untitled"}
+                                              </span>
+                                              <span className={cn(
+                                              "text-xs font-bold whitespace-nowrap px-2 py-0.5 rounded-full transition-colors",
+                                              isActive ? "bg-brand text-white" : "bg-border-hiyori text-ink-muted"
+                                              )}>
+                                              {format(parseISO(entry.date), "MMM d")}
+                                           </span>
+                                        </div>
+                                           <p className="text-sm text-ink-muted line-clamp-2 leading-relaxed">
+                                              {entry.body || <span className="italic opacity-50">No content</span>}
+                                           </p>
+                                        </button>
+                                        );
+                                        })
+                                     )}
+                                  </div>
+                               </motion.div>
+                            </>
+                         )}
+                      </AnimatePresence>
+                   </div>
+                   
+                    <button 
+                       onClick={handleNextDay}
+                       disabled={isToday(currentDate)}
+                       className="p-2 rounded-full hover:bg-surface-hover text-ink-muted hover:text-ink transition-colors disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
+                    >
+                       <ChevronRight className="w-6 h-6" />
+                    </button>
+                 </div>
+           
+                  <div className="flex items-center gap-3">
+                    {mode === 'view' ? (
+                       <button 
+                          onClick={startWriting}
+                          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-success text-white font-bold hover:bg-success-hover transition-all shadow-sm shadow-success/20"
+                       >
+                          <PenTool className="w-5 h-5" /> {currentEntry ? "Edit Entry" : "Write"}
+                       </button>
+                    ) : (
+                       <>
+                          {currentEntry && (
+                             <button 
+                                onClick={handleDelete}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface text-red-500 font-bold border border-border-hiyori hover:bg-red-50 hover:border-red-200 transition-all"
+                             >
+                                Delete
+                             </button>
+                          )}
+                          <button 
+                             onClick={() => setMode('view')}
+                             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface text-ink-muted font-bold border border-border-hiyori hover:bg-page hover:text-ink transition-all"
+                          >
+                             Cancel
+                          </button>
+                          <button 
+                             onClick={handleSave}
+                             disabled={!editTitle.trim() && !editBody.trim()}
+                             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-success text-white font-bold hover:bg-success-hover transition-all shadow-sm shadow-success/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-success"
+                          >
+                             <Save className="w-5 h-5" /> Save
+                          </button>
+                       </>
+                    )}
+                 </div>
+             </div>
 
 {/* Paper Container */}
 <div className="flex-1 bg-surface border border-border-hiyori rounded-4xl shadow-sm relative  flex flex-col z-10">
-   {/* Paper lines background effect */}
-   <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 31px, var(--ink) 31px, var(--ink) 32px)', backgroundPositionY: '8px' }} />
    
-   <div className="flex-1 p-10 relative z-10">
+    <div className="flex-1 p-4 md:p-10 relative z-10">
       {mode === 'view' ? (
       <AnimatePresence mode="wait">
          {currentEntry ? (
@@ -382,19 +390,24 @@ export function Journal() {
                      )}
                   </div>
                   
-                   <div className="text-lg text-ink leading-[1.75] whitespace-pre-wrap font-medium">
-                     {parsedTokens.map((token, i) => {
-                        if (token.type === "text") {
-                           return <span key={i}>{token.content}</span>;
-                        }
+                  <div className="w-full h-px bg-border-hiyori" />
 
-                        return (
-                           <HighlightedWord
-                              key={i}
-                              token={token}
-                           />
-                        );
-                     })}
+                  <div className="relative">
+                     <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 36px, var(--ink) 36px, var(--ink) 37px, transparent 37px, transparent 40px)' }} />
+                     <div className="text-lg text-ink leading-10 whitespace-pre-wrap font-medium">
+                        {parsedTokens.map((token, i) => {
+                           if (token.type === "text") {
+                              return <span key={i}>{token.content}</span>;
+                           }
+
+                           return (
+                              <HighlightedWord
+                                 key={i}
+                                 token={token}
+                              />
+                           );
+                        })}
+                     </div>
                   </div>
                </motion.div>
                ) : (
@@ -487,48 +500,60 @@ export function Journal() {
             )}
          </div>
          
-         <div className="w-full h-px bg-border-hiyori" />
-         
-         <textarea
-         value={editBody}
-         onChange={(e) => setEditBody(e.target.value)}
-         placeholder="Write your entry here... 何を食べましたか？"
-         className="w-full flex-1 resize-none bg-transparent border-none text-lg text-ink leading-loose focus:outline-none placeholder:text-ink-faint font-medium"
-         />
+          <div className="w-full h-px bg-border-hiyori" />
+          
+          <div className="flex-1 relative">
+             <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 36px, var(--ink) 36px, var(--ink) 37px, transparent 37px, transparent 40px)' }} />
+             <textarea
+             value={editBody}
+             onChange={(e) => setEditBody(e.target.value)}
+             placeholder="Write your entry here... 何を食べましたか？"
+             className="w-full h-full resize-none bg-transparent border-none text-lg text-ink leading-10 focus:outline-none placeholder:text-ink-faint font-medium"
+             />
+          </div>
       </motion.div>
       )}
    </div>
 </div>
 </div>
 
-   {/* Slide-out Dictionary Panel */}
-   <AnimatePresence>
-      {showDictionary && (
-         <motion.div 
-         initial={{ opacity: 0, x: 20, width: 0 }}
-         animate={{ opacity: 1, x: 0, width: 350 }}
-         exit={{ opacity: 0, x: 20, width: 0 }}
-         transition={{ duration: 0.3, ease: "easeInOut" }}
-         className="h-full shrink-0 overflow-hidden"
-         >
-         <div className="w-87.5 h-full bg-surface border border-border-hiyori rounded-4xl shadow-sm flex flex-col p-6">
-            <div className="flex items-center justify-between mb-6 shrink-0">
-               <h3 className="font-bold text-ink text-xl flex items-center gap-2">
-                  <Search className="w-5 h-5 text-brand" /> Quick Lookup
-               </h3>
-               <button onClick={() => setShowDictionary(false)} className="p-2 hover:bg-surface-hover rounded-full text-ink-muted transition-colors">
-                  <X className="w-5 h-5" />
-               </button>
-            </div>
-            
-            <div className="flex-1 overflow-hidden">
-               <Dictionary inline />
-            </div>
-         </div>
-      </motion.div>
-      )}
-   </AnimatePresence>
+
 </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && createPortal(
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+            <motion.div
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               className="bg-surface rounded-3xl shadow-xl border border-border-hiyori max-w-sm w-full p-8"
+            >
+               <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center">
+                     <Trash2 className="w-5 h-5 text-red-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-ink">Delete entry?</h3>
+               </div>
+               <p className="text-ink-muted mb-6">Are you sure you want to delete this entry? This cannot be undone.</p>
+               <div className="flex gap-3">
+                  <button
+                     onClick={() => setShowDeleteConfirm(false)}
+                     className="flex-1 px-6 py-3 bg-surface-hover text-ink font-bold rounded-xl hover:bg-border-hiyori transition-colors cursor-pointer"
+                  >
+                     Cancel
+                  </button>
+                  <button
+                     onClick={confirmDelete}
+                     className="flex-1 px-6 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors cursor-pointer"
+                  >
+                     Delete
+                  </button>
+               </div>
+            </motion.div>
+         </div>,
+         document.body
+      )}
+    </>
 );
 }
 
@@ -546,14 +571,33 @@ type HighlightedWordProps = {
 function HighlightedWord({
    token,
 }: HighlightedWordProps) {
-   
+   const tooltipRef = useRef<HTMLDivElement>(null);
+   const [align, setAlign] = useState<"center" | "left" | "right">("center");
+
    return (
       <span className="relative group inline">
-         <span className="bg-brand/20 text-brand-hover font-bold px-1 rounded cursor-pointer hover:bg-brand/30 transition-colors">
+         <span
+            className="bg-brand/20 text-brand-hover font-bold px-1 rounded cursor-pointer hover:bg-brand/30 transition-colors"
+            onMouseEnter={() => {
+               if (!tooltipRef.current) return;
+               const rect = tooltipRef.current.getBoundingClientRect();
+               if (rect.left < 0) setAlign("left");
+               else if (rect.right > window.innerWidth) setAlign("right");
+               else setAlign("center");
+            }}
+         >
             {token.content}
          </span>
 
-         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
+         <div
+            ref={tooltipRef}
+            className={cn(
+               "absolute bottom-full mb-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50",
+               align === "center" && "left-1/2 -translate-x-1/2",
+               align === "left" && "left-0",
+               align === "right" && "right-0",
+            )}
+         >
             <div className="bg-ink text-white rounded-xl shadow-xl p-3 min-w-60">
 
                <div className="space-y-2">
