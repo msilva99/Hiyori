@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
    ArrowLeft,
+   ArrowRight,
    Check,
    CheckCircle2,
    Eye,
    Languages,
+   Repeat,
    RotateCcw,
    Sparkles,
    X,
@@ -16,42 +18,102 @@ import {
 import { cn } from "../../lib/utils";
 import { useDecksStore } from "../store/decksStore";
 import { useStudyLogStore } from "../store/studyLogStore";
-import { isCardDue } from "../data/srs";
-import { shuffleCards, getCardFront, getCardPrompt, useTransitionLock } from "../data/studySession";
-import type { Card } from "../data/types";
+import { useRoutineRunStore, continueToNextStep } from "../store/routineRunStore";
+import {
+   collectSessionCards,
+   collectDueSessionCards,
+   getCardFront,
+   shuffleCards,
+   useTransitionLock,
+   type SessionCard,
+} from "../data/studySession";
 
 type StudyStats = {
    correctAttempts: number;
    wrongAttempts: number;
-   // A Set keeps each repeated card id only once, even if the learner misses it multiple times.
    retriedCardIds: Set<string>;
 };
 
 function createEmptyStats(): StudyStats {
-   return {
-      correctAttempts: 0,
-      wrongAttempts: 0,
-      retriedCardIds: new Set(),
-   };
+   return { correctAttempts: 0, wrongAttempts: 0, retriedCardIds: new Set() };
 }
 
-export function DeckStudy() {
-   const { id } = useParams();
+type SessionState = {
+   deckIds: string[];
+   wordLimit: number | "all";
+   routineToken?: string;
+   routineStepIndex?: number;
+};
+
+function applyLimit(cards: SessionCard[], wordLimit: number | "all") {
+   const shuffled = shuffleCards(cards);
+   return wordLimit === "all" ? shuffled : shuffled.slice(0, wordLimit);
+}
+
+function RoutineStepBanner({ routineName, currentStepIndex, totalSteps }: { routineName: string; currentStepIndex: number; totalSteps: number }) {
+   return (
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand/10 text-brand text-sm font-bold">
+         <Repeat className="w-4 h-4" /> {routineName} — Step {currentStepIndex + 1} of {totalSteps}
+      </div>
+   );
+}
+
+function RoutineStepActions({ isLastRoutineStep, onContinue, onExit }: { isLastRoutineStep: boolean; onContinue: () => void; onExit: () => void }) {
+   return (
+      <>
+         <button onClick={onExit} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border-hiyori bg-surface text-ink font-bold hover:bg-page transition-all shadow-sm">
+            Exit Routine
+         </button>
+         <button onClick={onContinue} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20">
+            {isLastRoutineStep ? "Finish Routine" : "Continue to Next Step"} <ArrowRight className="w-5 h-5" />
+         </button>
+      </>
+   );
+}
+
+export function StudySession() {
+   const location = useLocation();
+   const navigate = useNavigate();
    const decks = useDecksStore((state) => state.decks);
    const recordDeckMasteryStep = useDecksStore((state) => state.recordDeckMasteryStep);
    const recordCardReview = useDecksStore((state) => state.recordCardReview);
    const recordStudyLogEntry = useStudyLogStore((state) => state.recordStudyLogEntry);
 
-   const deck = decks.find((item) => item.id === id);
+   const sessionState = location.state as SessionState | null;
+   const deckIds = useMemo(() => sessionState?.deckIds ?? [], [sessionState]);
+   const wordLimit = sessionState?.wordLimit ?? "all";
 
-   // Snapshot of which cards were due when the page loaded. Reviewing a card
-   // reschedules it (possibly into the future), so we can't recompute "due" on
-   // every render without the queue shrinking out from under the session.
-   const [dueCardsAtMount] = useState<Card[]>(() => (deck ? deck.cards.filter((card) => isCardDue(card)) : []));
+   const run = useRoutineRunStore((state) => state.run);
+   const isRoutineStep = Boolean(
+      run && sessionState?.routineToken === run.token && sessionState?.routineStepIndex === run.currentStepIndex
+   );
+   const isLastRoutineStep = isRoutineStep && run!.currentStepIndex === run!.steps.length - 1;
+   const endRoutineRun = useRoutineRunStore((state) => state.endRun);
 
-   // This page stores only temporary session state. It does not write progress to saved deck data yet.
-   const [queue, setQueue] = useState<Card[]>(() => shuffleCards(dueCardsAtMount));
+   const handleRoutineContinue = () => {
+      if (isLastRoutineStep) {
+         endRoutineRun();
+         navigate("/routines");
+      } else {
+         continueToNextStep(navigate);
+      }
+   };
+
+   const handleRoutineExit = () => {
+      endRoutineRun();
+      navigate("/study");
+   };
+
+   const selectedDecks = useMemo(() => decks.filter((deck) => deckIds.includes(deck.id)), [decks, deckIds]);
+   const deckTitleById = useMemo(() => new Map(selectedDecks.map((deck) => [deck.id, deck.title])), [selectedDecks]);
+
+   const [dueCardsAtMount] = useState<SessionCard[]>(() =>
+      applyLimit(collectDueSessionCards(decks, deckIds), wordLimit)
+   );
+
+   const [queue, setQueue] = useState<SessionCard[]>(() => dueCardsAtMount);
    const [sessionCardCount, setSessionCardCount] = useState(() => dueCardsAtMount.length);
+   const [sessionDeckIds, setSessionDeckIds] = useState<Set<string>>(() => new Set(dueCardsAtMount.map((card) => card.deckId)));
    const [isPracticeMode, setIsPracticeMode] = useState(false);
    const [completedCardIds, setCompletedCardIds] = useState<Set<string>>(() => new Set());
    const [isRevealed, setIsRevealed] = useState(false);
@@ -63,27 +125,20 @@ export function DeckStudy() {
    const withTransitionLock = useTransitionLock();
 
    const currentCard = queue[0];
-   const totalCards = deck?.cards.length ?? 0;
+   const totalCards = selectedDecks.reduce((total, deck) => total + deck.cards.length, 0);
    const completedCount = completedCardIds.size;
    const progress = sessionCardCount > 0 ? (completedCount / sessionCardCount) * 100 : 0;
-   // Nothing was due when the page loaded, and the learner hasn't opted into practicing anyway.
    const isAllCaughtUp = totalCards > 0 && dueCardsAtMount.length === 0 && !isPracticeMode;
    const retriedCards = useMemo(() => {
-      if (!deck) {
-         return [];
-      }
-
-      // The completion screen needs full card objects, while stats only stores lightweight ids.
-      return deck.cards.filter((card) => stats.retriedCardIds.has(card.id));
-   }, [deck, stats.retriedCardIds]);
+      const allCards = collectSessionCards(decks, deckIds);
+      return allCards.filter((card) => stats.retriedCardIds.has(card.id));
+   }, [decks, deckIds, stats.retriedCardIds]);
 
    const startSession = () => {
-      if (!deck) {
-         return;
-      }
-
-      setQueue(shuffleCards(deck.cards));
-      setSessionCardCount(deck.cards.length);
+      const allCards = applyLimit(collectSessionCards(decks, deckIds), wordLimit);
+      setQueue(allCards);
+      setSessionCardCount(allCards.length);
+      setSessionDeckIds(new Set(allCards.map((card) => card.deckId)));
       setCompletedCardIds(new Set());
       setIsRevealed(false);
       setIsKanaVisible(false);
@@ -96,55 +151,31 @@ export function DeckStudy() {
       setIsPracticeMode(true);
    };
 
-   const handleReveal = useCallback(() => {
-      withTransitionLock(() => setIsRevealed(true));
-   }, [withTransitionLock]);
-
    const handleGrade = useCallback((grade: "again" | "good" | "easy") => {
-      if (!deck || !currentCard) {
+      if (!currentCard) {
          return;
       }
 
       withTransitionLock(() => {
-         recordCardReview(deck.id, currentCard.id, grade);
+         recordCardReview(currentCard.deckId, currentCard.id, grade);
 
          if (grade === "again") {
-            // A missed card is counted as a wrong attempt, then saved for the completion summary.
             setStats((currentStats) => {
                const retriedCardIds = new Set(currentStats.retriedCardIds);
                retriedCardIds.add(currentCard.id);
-
-               return {
-                  ...currentStats,
-                  wrongAttempts: currentStats.wrongAttempts + 1,
-                  retriedCardIds,
-               };
+               return { ...currentStats, wrongAttempts: currentStats.wrongAttempts + 1, retriedCardIds };
             });
-            recordStudyLogEntry({
-               deckId: deck.id,
-               cardsStudied: 0,
-               correctAttempts: 0,
-               wrongAttempts: 1,
-            });
+            recordStudyLogEntry({ deckId: currentCard.deckId, cardsStudied: 0, correctAttempts: 0, wrongAttempts: 1 });
             // Missed cards move to the back of the queue, so the session only ends once every card is answered correctly.
             setQueue((currentQueue) => [...currentQueue.slice(1), currentCard]);
          } else {
             if (queue.length === 1 && stats.wrongAttempts === 0 && !hasRecordedMastery) {
-               recordDeckMasteryStep(deck.id);
+               sessionDeckIds.forEach((deckId) => recordDeckMasteryStep(deckId));
                setHasRecordedMastery(true);
             }
 
-            // Correct cards leave the queue permanently for this session.
-            setStats((currentStats) => ({
-               ...currentStats,
-               correctAttempts: currentStats.correctAttempts + 1,
-            }));
-            recordStudyLogEntry({
-               deckId: deck.id,
-               cardsStudied: 1,
-               correctAttempts: 1,
-               wrongAttempts: 0,
-            });
+            setStats((currentStats) => ({ ...currentStats, correctAttempts: currentStats.correctAttempts + 1 }));
+            recordStudyLogEntry({ deckId: currentCard.deckId, cardsStudied: 1, correctAttempts: 1, wrongAttempts: 0 });
             setCompletedCardIds((currentIds) => new Set(currentIds).add(currentCard.id));
             setQueue((currentQueue) => currentQueue.slice(1));
          }
@@ -152,13 +183,14 @@ export function DeckStudy() {
          setIsRevealed(false);
          setIsKanaVisible(false);
       });
-   }, [deck, currentCard, queue.length, stats.wrongAttempts, hasRecordedMastery, recordDeckMasteryStep, recordCardReview, recordStudyLogEntry, withTransitionLock]);
+   }, [currentCard, queue.length, stats.wrongAttempts, hasRecordedMastery, sessionDeckIds, recordDeckMasteryStep, recordCardReview, recordStudyLogEntry, withTransitionLock]);
 
-   // Keyboard shortcuts mirror the on-screen buttons: Space/Enter flips the card
-   // (or confirms "Good" once revealed), 1/Left is "Again", 2/Right is "Good",
-   // 3 is "Easy", and K toggles kana on the front.
+   const handleReveal = useCallback(() => {
+      withTransitionLock(() => setIsRevealed(true));
+   }, [withTransitionLock]);
+
    useEffect(() => {
-      if (!deck || !currentCard) {
+      if (!currentCard) {
          return;
       }
 
@@ -196,17 +228,17 @@ export function DeckStudy() {
 
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
-   }, [deck, currentCard, isRevealed, isAlwaysKanaVisible, handleGrade, handleReveal]);
+   }, [currentCard, isRevealed, isAlwaysKanaVisible, handleGrade, handleReveal]);
 
-   if (!deck) {
+   if (!sessionState || deckIds.length === 0) {
       return (
-         <div className="space-y-6 font-sans max-w-5xl mx-auto w-full">
-            <Link to="/decks" className="inline-flex items-center gap-2 text-ink-muted hover:text-brand font-medium transition-colors text-sm">
-               <ArrowLeft className="w-4 h-4" /> Back to Decks
-            </Link>
+         <div className="space-y-6 font-sans max-w-3xl mx-auto w-full">
             <div className="bg-surface rounded-4xl p-10 border border-border-hiyori shadow-sm text-center">
-               <h1 className="text-3xl font-extrabold text-ink tracking-tight">Deck not found</h1>
-               <p className="text-ink-muted mt-3">This deck may have been deleted or the link may be incorrect.</p>
+               <h1 className="text-3xl font-extrabold text-ink tracking-tight">No study session set up</h1>
+               <p className="text-ink-muted mt-3">Choose your decks and word count first.</p>
+               <Link to="/study" className="inline-flex items-center gap-2 px-6 py-3 mt-8 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20">
+                  Go to Custom Study
+               </Link>
             </div>
          </div>
       );
@@ -215,22 +247,30 @@ export function DeckStudy() {
    if (totalCards === 0) {
       return (
          <div className="space-y-6 font-sans max-w-3xl mx-auto w-full">
-            <Link to={`/decks/${deck.id}`} className="inline-flex items-center gap-2 text-ink-muted hover:text-brand font-medium transition-colors text-sm">
-               <ArrowLeft className="w-4 h-4" /> Back to Deck
-            </Link>
+            {isRoutineStep ? (
+               <RoutineStepBanner routineName={run!.routineName} currentStepIndex={run!.currentStepIndex} totalSteps={run!.steps.length} />
+            ) : (
+               <Link to="/study" className="inline-flex items-center gap-2 text-ink-muted hover:text-brand font-medium transition-colors text-sm">
+                  <ArrowLeft className="w-4 h-4" /> Back to Custom Study
+               </Link>
+            )}
             <div className="bg-surface rounded-4xl p-10 border border-border-hiyori shadow-sm text-center">
                <div className="w-20 h-20 bg-surface-hover rounded-full flex items-center justify-center text-ink-faint mx-auto mb-5">
                   <Eye className="w-9 h-9" />
                </div>
-               <h1 className="text-3xl font-extrabold text-ink tracking-tight">No cards to study yet</h1>
-               <p className="text-ink-muted mt-3">Add a few words to this deck, then start a practice session.</p>
-               <Link to={`/decks/${deck.id}`} className="inline-flex items-center gap-2 px-6 py-3 mt-8 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20">
-                  Add Words
-               </Link>
+               <h1 className="text-3xl font-extrabold text-ink tracking-tight">No cards to study</h1>
+               <p className="text-ink-muted mt-3">The selected decks don't have any words yet.</p>
+               {isRoutineStep && (
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-8">
+                     <RoutineStepActions isLastRoutineStep={isLastRoutineStep} onContinue={handleRoutineContinue} onExit={handleRoutineExit} />
+                  </div>
+               )}
             </div>
          </div>
       );
    }
+
+   const sessionTitle = selectedDecks.length === 1 ? selectedDecks[0].title : `${selectedDecks.length} decks`;
 
    if (!currentCard && isAllCaughtUp) {
       return (
@@ -240,15 +280,24 @@ export function DeckStudy() {
             </motion.div>
 
             <div>
-               <p className="text-ink-muted font-bold text-sm uppercase tracking-wider mb-2">{deck.title}</p>
+               {isRoutineStep && (
+                  <div className="mb-4 flex justify-center">
+                     <RoutineStepBanner routineName={run!.routineName} currentStepIndex={run!.currentStepIndex} totalSteps={run!.steps.length} />
+                  </div>
+               )}
+               <p className="text-ink-muted font-bold text-sm uppercase tracking-wider mb-2">{sessionTitle}</p>
                <h1 className="text-4xl font-extrabold text-ink tracking-tight">All caught up!</h1>
-               <p className="text-ink-muted text-lg mt-3">Nothing is due for review right now. Come back later, or practice the whole deck anyway.</p>
+               <p className="text-ink-muted text-lg mt-3">Nothing is due for review right now. Come back later, or practice anyway.</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-               <Link to={`/decks/${deck.id}`} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border-hiyori bg-surface text-ink font-bold hover:bg-page transition-all shadow-sm">
-                  Back to Deck
-               </Link>
+               {isRoutineStep ? (
+                  <RoutineStepActions isLastRoutineStep={isLastRoutineStep} onContinue={handleRoutineContinue} onExit={handleRoutineExit} />
+               ) : (
+                  <Link to="/study" className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border-hiyori bg-surface text-ink font-bold hover:bg-page transition-all shadow-sm">
+                     Back to Custom Study
+                  </Link>
+               )}
                <button onClick={practiceAnyway} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20">
                   <RotateCcw className="w-5 h-5" /> Practice Anyway
                </button>
@@ -267,7 +316,12 @@ export function DeckStudy() {
             </motion.div>
 
             <div>
-               <p className="text-ink-muted font-bold text-sm uppercase tracking-wider mb-2">{deck.title}</p>
+               {isRoutineStep && (
+                  <div className="mb-4 flex justify-center">
+                     <RoutineStepBanner routineName={run!.routineName} currentStepIndex={run!.currentStepIndex} totalSteps={run!.steps.length} />
+                  </div>
+               )}
+               <p className="text-ink-muted font-bold text-sm uppercase tracking-wider mb-2">{sessionTitle}</p>
                <h1 className="text-4xl font-extrabold text-ink tracking-tight">Session complete</h1>
                <p className="text-ink-muted text-lg mt-3">You answered every card correctly before finishing.</p>
             </div>
@@ -293,7 +347,7 @@ export function DeckStudy() {
                   <div className="flex flex-wrap gap-2">
                      {retriedCards.map((card) => (
                         <span key={card.id} className="px-3 py-1.5 rounded-lg bg-surface-hover text-ink text-sm font-bold">
-                           {getCardPrompt(card)}
+                           {card.kanji || card.kana}
                         </span>
                      ))}
                   </div>
@@ -301,9 +355,13 @@ export function DeckStudy() {
             )}
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-               <Link to={`/decks/${deck.id}`} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border-hiyori bg-surface text-ink font-bold hover:bg-page transition-all shadow-sm">
-                  Back to Deck
-               </Link>
+               {isRoutineStep ? (
+                  <RoutineStepActions isLastRoutineStep={isLastRoutineStep} onContinue={handleRoutineContinue} onExit={handleRoutineExit} />
+               ) : (
+                  <Link to="/study" className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border-hiyori bg-surface text-ink font-bold hover:bg-page transition-all shadow-sm">
+                     Back to Custom Study
+                  </Link>
+               )}
                <button onClick={startSession} className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20">
                   <RotateCcw className="w-5 h-5" /> Study Again
                </button>
@@ -313,16 +371,15 @@ export function DeckStudy() {
    }
 
    const canToggleKana = Boolean(currentCard.kana && currentCard.kanji);
-   const hasKanaToggleCards = deck.cards.some((card) => card.kana && card.kanji);
    const shouldShowKana = Boolean(canToggleKana && (isKanaVisible || isAlwaysKanaVisible));
 
    return (
       <div className="max-w-3xl mx-auto w-full pt-3 pb-10 font-sans">
          <div className="space-y-3 mb-5">
             <div className="flex items-center justify-between gap-4">
-               <Link to={`/decks/${deck.id}`} className="flex items-center gap-2 text-ink-muted hover:text-ink font-medium transition-colors text-sm">
-                  <ArrowLeft className="w-4 h-4" /> Back to Deck
-               </Link>
+               <button onClick={() => navigate("/study")} className="flex items-center gap-2 text-ink-muted hover:text-ink font-medium transition-colors text-sm cursor-pointer">
+                  <ArrowLeft className="w-4 h-4" /> Back to Custom Study
+               </button>
                <div className="flex items-center gap-3 text-sm font-bold text-ink-muted">
                   <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-success" /> {stats.correctAttempts} correct</span>
                   <span className="inline-flex items-center gap-1.5"><X className="w-4 h-4 text-brand" /> {stats.wrongAttempts} missed</span>
@@ -336,7 +393,7 @@ export function DeckStudy() {
 
          <div className="flex items-center justify-between gap-3 mb-4">
             <div>
-               <p className="text-ink-muted font-bold text-sm uppercase tracking-wider">{deck.title}</p>
+               <p className="text-ink-muted font-bold text-sm uppercase tracking-wider">{sessionTitle}</p>
                <h1 className="text-2xl font-extrabold text-ink tracking-tight mt-1">
                   {stats.retriedCardIds.has(currentCard.id) ? "Retry card" : "Study card"}
                </h1>
@@ -347,18 +404,23 @@ export function DeckStudy() {
             </div>
          </div>
 
-         {/* Screen-reader-only announcement; the animated card next to it is purely visual. */}
          <div role="status" aria-live="polite" className="sr-only">
             {isRevealed ? `Answer: ${currentCard.meaning || "No meaning set"}` : `Card: ${getCardFront(currentCard)}`}
          </div>
 
-         <motion.div
-            layout
-            className={cn(
-               "bg-surface rounded-4xl p-7 md:p-9 border shadow-sm min-h-82.5 flex flex-col",
-               stats.retriedCardIds.has(currentCard.id) ? "border-brand/30" : "border-border-hiyori"
+         <div className="relative">
+            {selectedDecks.length > 1 && (
+               <span className="absolute top-5 right-6 z-10 text-xs font-bold text-ink-faint bg-surface-hover px-2.5 py-1 rounded-full">
+                  {deckTitleById.get(currentCard.deckId)}
+               </span>
             )}
-         >
+            <motion.div
+               layout
+               className={cn(
+                  "bg-surface rounded-4xl p-7 md:p-9 border shadow-sm min-h-82.5 flex flex-col",
+                  stats.retriedCardIds.has(currentCard.id) ? "border-brand/30" : "border-border-hiyori"
+               )}
+            >
             <AnimatePresence mode="wait">
                <motion.div
                   key={`${currentCard.id}-${isRevealed ? "back" : "front"}`}
@@ -372,29 +434,24 @@ export function DeckStudy() {
                      <div className="flex flex-col items-center text-center max-w-full">
                         {(currentCard.kanji || currentCard.kana) && (
                            <div className="mb-6">
-
                               {currentCard.kana && (
                                  <div className="text-lg md:text-xl text-ink-muted mt-2 font-medium wrap-break-word">
                                     {currentCard.kana}
                                  </div>
                               )}
-
                               {currentCard.kanji && (
                                  <div className="text-3xl md:text-4xl font-bold text-ink leading-tight wrap-break-word">
                                     {currentCard.kanji}
                                  </div>
                               )}
-
                            </div>
                         )}
-
                         <div className="text-5xl md:text-6xl font-black text-ink leading-tight wrap-break-word">
                            {currentCard.meaning || "No meaning set"}
                         </div>
                      </div>
                   ) : (
                      <>
-                        {/* Kana is optional help on the front. Flipping the card shows only the meaning. */}
                         {shouldShowKana && (
                            <div className="text-3xl md:text-4xl font-black text-ink-muted leading-tight wrap-break-word max-w-full mb-3">
                               {currentCard.kana}
@@ -407,7 +464,8 @@ export function DeckStudy() {
                   )}
                </motion.div>
             </AnimatePresence>
-         </motion.div>
+            </motion.div>
+         </div>
 
          <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             {isRevealed ? (
@@ -449,7 +507,7 @@ export function DeckStudy() {
             <button
                type="button"
                aria-pressed={isAlwaysKanaVisible}
-               disabled={!hasKanaToggleCards}
+               disabled={!canToggleKana}
                onClick={() => {
                   setIsAlwaysKanaVisible((currentValue) => !currentValue);
                   setIsKanaVisible(false);

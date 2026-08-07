@@ -4,6 +4,10 @@ import { Home } from "./pages/Home";
 import { Decks } from "./pages/Decks";
 import { DeckDetail } from "./pages/DeckDetail";
 import { DeckStudy } from "./pages/DeckStudy";
+import { StudySettings } from "./pages/StudySettings";
+import { StudySession } from "./pages/StudySession";
+import { Test } from "./pages/Test";
+import { Routines } from "./pages/Routines";
 import { KanaPractice } from "./pages/KanaPractice";
 import { Journal } from "./pages/Journal";
 import { Dictionary } from "./pages/Dictionary";
@@ -21,6 +25,10 @@ export const router = createBrowserRouter([
          { path: "decks", Component: Decks },
          { path: "decks/:id", Component: DeckDetail },
          { path: "decks/:id/study", Component: DeckStudy },
+         { path: "study", Component: StudySettings },
+         { path: "study/session", Component: StudySession },
+         { path: "test", Component: Test },
+         { path: "routines", Component: Routines },
          { path: "kana", Component: KanaPractice },
          { path: "journal", Component: Journal },
          { path: "dictionary", Component: Dictionary },

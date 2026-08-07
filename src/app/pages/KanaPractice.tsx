@@ -240,13 +240,13 @@ export function KanaPractice() {
                      className={cn(
                      "w-full text-center text-3xl font-bold px-6 py-4 bg-surface border-2 rounded-2xl shadow-sm outline-none transition-all placeholder:text-ink-faint placeholder:font-medium placeholder:text-2xl",
                      isWrong 
-                     ? "border-red-500 text-red-500 bg-red-50 shake" 
+                     ? "border-destructive text-destructive bg-destructive-surface shake"
                      : "border-border-hiyori text-ink focus:border-brand focus:ring-4 focus:ring-brand/10"
                      )}
                      autoFocus
                      autoComplete="off"
                   />
-                  {isWrong && <XCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-red-500" />}
+                  {isWrong && <XCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-destructive" />}
                </div>
                <p className="text-ink-muted mt-6 text-sm font-medium">Type the romaji and press Enter</p>
             </div>

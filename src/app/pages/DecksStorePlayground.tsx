@@ -131,7 +131,7 @@ export function DecksStorePlayground() {
 
                   <button
                      onClick={() => deleteDeck(deck.id)}
-                     className="border px-3 py-1 rounded text-red-600"
+                     className="border px-3 py-1 rounded text-destructive-hover"
                   >
                      Delete
                   </button>

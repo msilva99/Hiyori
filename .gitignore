@@ -27,8 +27,7 @@ chrome-user-data
 *.swo
 /tmp
 /.worktrees
-.claude/*.local.*
-.claude/worktrees
+.claude/
 
 packages/react-devtools-core/dist
 packages/react-devtools-extensions/chrome/build

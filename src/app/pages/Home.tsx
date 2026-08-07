@@ -1,19 +1,23 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { motion } from "motion/react";
-import { 
-   Flame, 
-   Target, 
-   Book, 
-   ChevronRight, 
-   PenTool, 
-   Play, 
+import {
+   Flame,
+   Target,
+   Book,
+   ChevronRight,
+   PenTool,
+   Play,
    CalendarDays,
    Sparkles,
-   TrendingUp
+   TrendingUp,
+   Repeat
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useDecksStore } from "../store/decksStore";
 import { useStudyLogStore } from "../store/studyLogStore";
+import { useRoutinesStore } from "../store/routinesStore";
+import { startRoutineRun } from "../store/routineRunStore";
+import { getStepSummary } from "../data/routines";
 import type { Deck, StudyLogEntry } from "../data/types";
 
 const DAILY_GOAL_CARDS = 10;
@@ -170,8 +174,12 @@ function getLeastRecentlyStudiedDeck(decks: Deck[], studyLog: StudyLogEntry[]) {
 }
 
 export function Home() {
+   const navigate = useNavigate();
    const decks = useDecksStore((state) => state.decks);
    const studyLog = useStudyLogStore((state) => state.studyLog);
+   const routines = useRoutinesStore((state) => state.routines);
+   const activeRoutineId = useRoutinesStore((state) => state.activeRoutineId);
+   const activeRoutine = routines.find((routine) => routine.id === activeRoutineId) ?? null;
    const cardsByDate = getStudyCardsByDate(studyLog);
    const weekDays = getWeekDays(cardsByDate);
    const currentStreak = getCurrentStreak(cardsByDate);
@@ -295,7 +303,39 @@ export function Home() {
          </div>
       </motion.div>
    </div>
-   
+
+   {/* Active Routine Card - additive only, never touches Daily Goal/streak logic above */}
+   {activeRoutine && (
+      <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+      className="bg-surface rounded-[28px] p-6 shadow-sm border border-border-hiyori flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+      <div className="flex items-center gap-4 min-w-0">
+         <div className="w-12 h-12 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+            <Repeat className="w-6 h-6" />
+         </div>
+         <div className="min-w-0">
+            <h2 className="text-ink-muted font-medium text-sm">Active Routine</h2>
+            <h3 className="text-xl font-bold text-ink truncate">{activeRoutine.name}</h3>
+            <p className="text-ink-muted text-sm mt-0.5">
+               {activeRoutine.steps.length === 0
+                  ? "Add steps to this routine to run it."
+                  : activeRoutine.steps.map((step) => getStepSummary(step, decks)).join(" → ")}
+            </p>
+         </div>
+      </div>
+      {activeRoutine.steps.length === 0 ? (
+         <Link to="/routines" className="bg-page hover:bg-surface-hover text-ink px-6 py-2.5 rounded-xl font-medium transition-colors inline-flex items-center gap-2 shadow-sm border border-border-hiyori shrink-0">
+            Add Steps
+         </Link>
+      ) : (
+         <button onClick={() => startRoutineRun(activeRoutine, navigate)} className="bg-brand hover:bg-brand-hover text-white px-6 py-2.5 rounded-xl font-medium transition-colors inline-flex items-center gap-2 shadow-sm shadow-brand/20 shrink-0">
+            Start <Play className="w-4 h-4 fill-current" />
+         </button>
+      )}
+      </motion.div>
+   )}
+
    {/* Main Actions Row */}
    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Learn Kana Link */}

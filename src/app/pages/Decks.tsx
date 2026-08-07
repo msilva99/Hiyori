@@ -1,20 +1,24 @@
 import { useRef, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-   Plus, 
-   Download, 
-   Search, 
-   MoreVertical, 
-   Play, 
-   BookOpen, 
+import {
+   Plus,
+   Download,
+   Search,
+   MoreVertical,
+   Play,
+   BookOpen,
    Book,
    Edit2,
-   Trash2
+   Trash2,
+   AlertTriangle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { cn } from "../../lib/utils";
 import { useDecksStore } from "../store/decksStore";
-import type { Card } from "../data/types";
+import { isCardDue } from "../data/srs";
+import { Modal } from "../components/Modal";
+import type { Card, Deck } from "../data/types";
 
 const deckColorClasses = [
    "bg-deck-pine",
@@ -98,7 +102,9 @@ export function Decks() {
    
    const importInputRef = useRef<HTMLInputElement>(null);
    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-   
+   const [deleteConfirm, setDeleteConfirm] = useState<Deck | null>(null);
+   const [importError, setImportError] = useState<string | null>(null);
+
    const [searchQuery, setSearchQuery] = useState("");
    const [sortBy, setSortBy] = useState<"lastStudied" | "alphabetical" | "inProgress">("lastStudied");
 
@@ -155,13 +161,19 @@ export function Decks() {
    );
 
    // Delete Deck
-                        
-   const handleDelete = (id: string) => {
-      // Browser confirm is acceptable for this prototype; replace with a custom dialog later.
-      if (confirm("Are you sure you want to delete this deck? This action cannot be undone.")) {
-         deleteDeck(id);
-         setActiveMenuId(null);
+
+   const handleDelete = (deck: Deck) => {
+      setDeleteConfirm(deck);
+      setActiveMenuId(null);
+   };
+
+   const confirmDelete = () => {
+      if (!deleteConfirm) {
+         return;
       }
+
+      deleteDeck(deleteConfirm.id);
+      setDeleteConfirm(null);
    };
 
    // Create New Deck
@@ -190,14 +202,16 @@ export function Decks() {
          const importedDeck = parseDeckImport(await file.text(), file.name);
 
          if (importedDeck.cards.length === 0) {
-            alert("This file did not contain any valid cards to import.");
+            setImportError("This file did not contain any valid cards to import.");
+            setTimeout(() => setImportError(null), 4000);
             return;
          }
 
          const deck = importDeck(importedDeck.title, importedDeck.cards);
          navigate(`/decks/${deck.id}`);
       } catch {
-         alert("This deck could not be imported. Please choose a valid JSON file.");
+         setImportError("This deck could not be imported. Please choose a valid JSON file.");
+         setTimeout(() => setImportError(null), 4000);
       }
    };
 
@@ -273,9 +287,8 @@ export function Decks() {
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
          >
             {filteredDecks.map((deck, i) => {
-               // Due cards are placeholders until spaced repetition is implemented.
                const totalCards = deck.cards.length;
-               const dueCards = 0;
+               const dueCards = deck.cards.filter((card) => isCardDue(card)).length;
                const progress = getDeckMastery(deck);
                const color = getDeckColor(i);
 
@@ -289,12 +302,13 @@ export function Decks() {
                   >
                      {/* Top Right Menu */}
                      <div className="absolute top-6 right-4">
-                        <button 
+                        <button
                            onClick={() => setActiveMenuId(activeMenuId === deck.id ? null : deck.id)}
+                           aria-label={`More options for ${deck.title}`}
                            className={cn(
                               "p-2 rounded-full transition-colors",
-                              activeMenuId === deck.id 
-                                 ? "bg-surface-hover text-ink" 
+                              activeMenuId === deck.id
+                                 ? "bg-surface-hover text-ink"
                                  : "text-ink-faint hover:text-ink hover:bg-page"
                            )}
                         >
@@ -318,11 +332,11 @@ export function Decks() {
                                     >
                                        <Edit2 className="w-4 h-4 text-ink-muted" /> Edit Deck Info
                                     </Link>
-                                    <button 
-                                       onClick={() => handleDelete(deck.id)}
-                                       className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                    <button
+                                       onClick={() => handleDelete(deck)}
+                                       className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-destructive-hover hover:bg-destructive-surface rounded-xl transition-colors"
                                     >
-                                       <Trash2 className="w-4 h-4 text-red-500" /> Delete Deck
+                                       <Trash2 className="w-4 h-4 text-destructive" /> Delete Deck
                                     </button>
                                  </motion.div>
                               </>
@@ -386,6 +400,46 @@ export function Decks() {
                );
             })}
          </motion.div>
+
+         {/* Delete Confirm Modal - portal to body */}
+         {deleteConfirm && createPortal(
+            <Modal onClose={() => setDeleteConfirm(null)} titleId="delete-deck-title" className="max-w-sm w-full p-8">
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="w-10 h-10 rounded-2xl bg-destructive-surface flex items-center justify-center">
+                        <Trash2 className="w-5 h-5 text-destructive" />
+                     </div>
+                     <h3 id="delete-deck-title" className="text-xl font-bold text-ink">Delete deck?</h3>
+                  </div>
+                  <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-6">
+                     <p className="font-bold text-ink">{deleteConfirm.title}</p>
+                     <p className="text-ink-muted text-sm mt-1">{deleteConfirm.cards.length} card{deleteConfirm.cards.length !== 1 ? "s" : ""} will be removed. This cannot be undone.</p>
+                  </div>
+                  <div className="flex gap-3">
+                     <button
+                        onClick={() => setDeleteConfirm(null)}
+                        className="flex-1 px-6 py-3 bg-surface-hover text-ink font-bold rounded-xl hover:bg-border-hiyori transition-colors cursor-pointer"
+                     >
+                        Cancel
+                     </button>
+                     <button
+                        onClick={confirmDelete}
+                        className="flex-1 px-6 py-3 bg-destructive text-white font-bold rounded-xl hover:bg-destructive-hover transition-colors cursor-pointer"
+                     >
+                        Delete
+                     </button>
+                  </div>
+            </Modal>,
+            document.body
+         )}
+
+         {/* Import Error Toast */}
+         {importError && createPortal(
+            <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-destructive text-white rounded-2xl shadow-lg border border-destructive-hover max-w-sm">
+               <AlertTriangle className="w-5 h-5 shrink-0" />
+               <span className="font-bold text-sm">{importError}</span>
+            </div>,
+            document.body
+         )}
       </div>
    );
 }

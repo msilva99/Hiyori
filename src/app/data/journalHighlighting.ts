@@ -106,15 +106,6 @@ export function parseJournalText(
 
       // Found a vocabulary match
       if (matchedText) {
-
-         console.log(
-            matchedVocabulary.map(v => ({
-               deckId: v.deckId,
-               cardId: v.cardId,
-               kanji: v.kanji,
-            }))
-         );
-         
          tokens.push({
             type: "highlight",
             content: matchedText,

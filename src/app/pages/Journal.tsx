@@ -1,9 +1,10 @@
-import { useState, useRef, useMemo } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useState, useRef, useMemo, useEffect } from "react";
+import { motion } from "motion/react";
 import { createPortal } from "react-dom";
 import type { JournalEntry, JournalSlot } from "../data/types";
 import { useDecksStore } from "../store/decksStore";
 import { useJournalStore } from "../store/journalStore";
+import { Modal } from "../components/Modal";
 import {
    buildVocabularyIndex,
    parseJournalText,
@@ -25,7 +26,8 @@ import {
    Frown,
 
     CalendarDays,
-    Trash2
+    Trash2,
+    AlertTriangle
 } from "lucide-react";
 import { format, subDays, addDays, isToday, parseISO } from "date-fns";
 import { cn } from "../../lib/utils";
@@ -77,6 +79,8 @@ import { cn } from "../../lib/utils";
 // }
 // ];
 
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: i, label: format(new Date(2000, i, 1), "MMMM") }));
+
 const availableIcons = {
    Sun: <Sun className="w-5 h-5" />,
    Moon: <Moon className="w-5 h-5" />,
@@ -102,23 +106,81 @@ export function Journal() {
 
    const [mode, setMode] = useState<'view' | 'edit'>('view');
    const [showHistory, setShowHistory] = useState(false);
-   
+   const [historyMonthFilter, setHistoryMonthFilter] = useState<'all' | number>('all');
+   const [historyYearFilter, setHistoryYearFilter] = useState<'all' | number>('all');
+   const historyRef = useRef<HTMLDivElement>(null);
+
+   // Closing the history popover on an outside click/Escape via document listeners
+   // (rather than a full-viewport overlay element) - no extra DOM node, so nothing
+   // for a screen reader to navigate around and nothing extra to paint/hit-test.
+   useEffect(() => {
+      if (!showHistory) {
+         return;
+      }
+
+      const handlePointerDown = (event: MouseEvent) => {
+         if (historyRef.current && !historyRef.current.contains(event.target as Node)) {
+            setShowHistory(false);
+         }
+      };
+
+      const handleKeyDown = (event: KeyboardEvent) => {
+         if (event.key === "Escape") {
+            setShowHistory(false);
+         }
+      };
+
+      document.addEventListener("mousedown", handlePointerDown);
+      document.addEventListener("keydown", handleKeyDown);
+
+      return () => {
+         document.removeEventListener("mousedown", handlePointerDown);
+         document.removeEventListener("keydown", handleKeyDown);
+      };
+   }, [showHistory]);
+
    // Edit State
    const [editTitle, setEditTitle] = useState("");
    const [editBody, setEditBody] = useState("");
    const [editSlots, setEditSlots] = useState<JournalSlot[]>([]);
    
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [showIconPickerFor, setShowIconPickerFor] = useState<string | null>(null);
-      
+    // Snapshot of the fields when editing started, so Cancel can tell whether anything actually changed.
+    const initialEditStateRef = useRef({ title: "", body: "", slots: [] as JournalSlot[] });
+
    // Derived value: the entry for whichever day the user is currently viewing.
    const currentDateKey = format(currentDate, "yyyy-MM-dd");
    const currentEntry = entries.find(e => e.date === currentDateKey);
-   
-   const handlePrevDay = () => setCurrentDate(subDays(currentDate, 1));
-   const handleNextDay = () => setCurrentDate(addDays(currentDate, 1));
 
-   
+   // Switching days mid-edit shouldn't force a choice - autosave whatever's
+   // there (or just exit edit mode if there's nothing worth keeping) and move on.
+   const commitDraftBeforeLeaving = () => {
+      if (mode !== 'edit') {
+         return;
+      }
+
+      const hasContent = editTitle.trim() || editBody.trim() || editSlots.some(slot => slot.text.trim());
+
+      if (hasContent && hasUnsavedEditChanges()) {
+         handleSave();
+      } else {
+         setMode('view');
+      }
+   };
+
+   const handlePrevDay = () => {
+      commitDraftBeforeLeaving();
+      setCurrentDate(subDays(currentDate, 1));
+   };
+
+   const handleNextDay = () => {
+      commitDraftBeforeLeaving();
+      setCurrentDate(addDays(currentDate, 1));
+   };
+
+
    const vocabulary = useMemo(() => {
       return buildVocabularyIndex(decks);
    }, [decks]);
@@ -128,6 +190,28 @@ export function Journal() {
 
       return parseJournalText(currentEntry.body, vocabulary);
    }, [currentEntry, vocabulary]);
+
+   const knownWordCount = useMemo(() => {
+      return new Set(
+         parsedTokens.filter((token) => token.type === "highlight").map((token) => token.content)
+      ).size;
+   }, [parsedTokens]);
+
+   const availableHistoryYears = useMemo(() => {
+      const years = new Set(entries.map(entry => parseISO(entry.date).getFullYear()));
+      return Array.from(years).sort((a, b) => b - a);
+   }, [entries]);
+
+   const filteredHistoryEntries = useMemo(() => {
+      return [...entries]
+         .filter(entry => {
+            const entryDate = parseISO(entry.date);
+            if (historyYearFilter !== 'all' && entryDate.getFullYear() !== historyYearFilter) return false;
+            if (historyMonthFilter !== 'all' && entryDate.getMonth() !== historyMonthFilter) return false;
+            return true;
+         })
+         .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+   }, [entries, historyYearFilter, historyMonthFilter]);
 
 
 
@@ -139,12 +223,36 @@ export function Journal() {
          setEditTitle(currentEntry.title);
          setEditBody(currentEntry.body);
          setEditSlots([...currentEntry.slots]);
+         initialEditStateRef.current = { title: currentEntry.title, body: currentEntry.body, slots: [...currentEntry.slots] };
       } else {
          setEditTitle("");
          setEditBody("");
          setEditSlots([]);
+         initialEditStateRef.current = { title: "", body: "", slots: [] };
       }
       setMode('edit');
+   };
+
+   const hasUnsavedEditChanges = () => {
+      const baseline = initialEditStateRef.current;
+      return (
+         editTitle !== baseline.title ||
+         editBody !== baseline.body ||
+         JSON.stringify(editSlots) !== JSON.stringify(baseline.slots)
+      );
+   };
+
+   const handleCancelEdit = () => {
+      if (hasUnsavedEditChanges()) {
+         setShowDiscardConfirm(true);
+         return;
+      }
+      setMode('view');
+   };
+
+   const confirmDiscardEdit = () => {
+      setShowDiscardConfirm(false);
+      setMode('view');
    };
    
     const handleSave = () => {
@@ -230,17 +338,20 @@ return (
              {/* Header Navigation */}
              <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between mb-8 shrink-0 relative z-40 gap-3">
                 <div className="flex items-center justify-center sm:justify-start gap-4 w-full sm:w-auto">
-                   <button 
+                   <button
                       onClick={handlePrevDay}
+                      aria-label="Previous day"
                       className="p-2 rounded-full hover:bg-surface-hover text-ink-muted hover:text-ink transition-colors shrink-0"
                    >
                       <ChevronLeft className="w-6 h-6" />
                    </button>
                 
                    {/* Clickable Date with History Popover */}
-                   <div className="relative">
-                      <button 
+                   <div className="relative" ref={historyRef}>
+                      <button
                          onClick={() => setShowHistory(!showHistory)}
+                         aria-expanded={showHistory}
+                         aria-haspopup="true"
                          className="text-center min-w-40 group flex flex-col items-center justify-center px-4 py-2 rounded-2xl hover:bg-page transition-all hover:shadow-sm border border-transparent hover:border-border-hiyori"
                          >
                          <div className="flex items-center gap-2">
@@ -251,38 +362,63 @@ return (
                          </div>
                          <span className="text-ink-muted text-sm font-medium">{format(currentDate, "MMMM d, yyyy")}</span>
                       </button>
-                      
-                      <AnimatePresence>
-                         {showHistory && (
-                            <>
-                               <div
-                                  className="fixed inset-0"
-                                  style={{ pointerEvents: "none" }}
-                                  onClick={() => setShowHistory(false)}
-                               />
-                               <motion.div 
+
+                      {/* Plain conditional render rather than AnimatePresence - its exit
+                          animation reliably got stuck at opacity 0 without ever unmounting
+                          in this file, so the popover would "close" visually but stay in
+                          the DOM (and keep intercepting outside clicks). A fade-in on open
+                          is enough; closing can just be instant. */}
+                      {showHistory && (
+                               <motion.div
                                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                   transition={{ duration: 0.15 }}
-                                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[90vw] sm:w-[320px] bg-surface rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-border-hiyori flex flex-col max-h-100"
+                                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[90vw] sm:w-[320px] bg-surface rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-border-hiyori flex flex-col max-h-100 overflow-hidden"
                                >
-                                  <div className="p-4 border-b border-border-hiyori bg-page flex items-center justify-between sticky top-0 z-10">
+                                  <div className="p-4 border-b border-border-hiyori bg-page flex items-center justify-between shrink-0">
                                      <span className="font-bold text-ink">Entry History</span>
-                                     <span className="text-xs font-bold bg-brand/10 text-brand px-2.5 py-1 rounded-md">{entries.length} entries</span>
+                                     <span className="text-xs font-bold bg-brand/10 text-brand px-2.5 py-1 rounded-md">{filteredHistoryEntries.length} entries</span>
                                   </div>
-                                  <div >
-                                     {entries.length === 0 ? (
-                                        <div className="p-8 text-center text-ink-muted text-sm font-medium">No past entries yet.</div>
+                                  {entries.length > 0 && (
+                                     <div className="p-3 border-b border-border-hiyori bg-page flex items-center gap-2 shrink-0">
+                                        <select
+                                           value={historyMonthFilter}
+                                           onChange={(e) => setHistoryMonthFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                           aria-label="Filter entries by month"
+                                           className="flex-1 min-w-0 text-sm font-bold bg-surface border border-border-hiyori rounded-lg px-2 py-1.5 text-ink focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer"
+                                        >
+                                           <option value="all">All months</option>
+                                           {MONTH_OPTIONS.map(month => (
+                                              <option key={month.value} value={month.value}>{month.label}</option>
+                                           ))}
+                                        </select>
+                                        <select
+                                           value={historyYearFilter}
+                                           onChange={(e) => setHistoryYearFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                                           aria-label="Filter entries by year"
+                                           className="text-sm font-bold bg-surface border border-border-hiyori rounded-lg px-2 py-1.5 text-ink focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer"
+                                        >
+                                           <option value="all">All years</option>
+                                           {availableHistoryYears.map(year => (
+                                              <option key={year} value={year}>{year}</option>
+                                           ))}
+                                        </select>
+                                     </div>
+                                  )}
+                                  <div className="overflow-y-auto">
+                                     {filteredHistoryEntries.length === 0 ? (
+                                        <div className="p-8 text-center text-ink-muted text-sm font-medium">
+                                           {entries.length === 0 ? "No past entries yet." : "No entries match this filter."}
+                                        </div>
                                         ) : (
-                                        [...entries].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map(entry => {
+                                        filteredHistoryEntries.map(entry => {
                                            const isActive = entry.date === currentDateKey;
                                            return (
                                            <button
                                               key={entry.id}
                                               onClick={() => {
+                                                 commitDraftBeforeLeaving();
                                                  setCurrentDate(parseISO(entry.date));
-                                                 setMode('view');
                                                  setShowHistory(false);
                                            }}
                                            className={cn(
@@ -313,14 +449,13 @@ return (
                                      )}
                                   </div>
                                </motion.div>
-                            </>
-                         )}
-                      </AnimatePresence>
+                      )}
                    </div>
-                   
-                    <button 
+
+                    <button
                        onClick={handleNextDay}
                        disabled={isToday(currentDate)}
+                       aria-label="Next day"
                        className="p-2 rounded-full hover:bg-surface-hover text-ink-muted hover:text-ink transition-colors disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
                     >
                        <ChevronRight className="w-6 h-6" />
@@ -340,13 +475,13 @@ return (
                           {currentEntry && (
                              <button 
                                 onClick={handleDelete}
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface text-red-500 font-bold border border-border-hiyori hover:bg-red-50 hover:border-red-200 transition-all"
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface text-destructive font-bold border border-border-hiyori hover:bg-destructive-surface hover:border-destructive-surface-border transition-all"
                              >
                                 Delete
                              </button>
                           )}
-                          <button 
-                             onClick={() => setMode('view')}
+                          <button
+                             onClick={handleCancelEdit}
                              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface text-ink-muted font-bold border border-border-hiyori hover:bg-page hover:text-ink transition-all"
                           >
                              Cancel
@@ -368,28 +503,40 @@ return (
    
     <div className="flex-1 p-4 md:p-10 relative z-10">
       {mode === 'view' ? (
-      <AnimatePresence mode="wait">
-         {currentEntry ? (
-            <motion.div 
-            key={`view-${currentEntry.id}`}
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="space-y-8"
-            >
-            <div>
-               <h1 className="text-4xl font-extrabold text-ink leading-tight mb-6">{currentEntry.title}</h1>
-               
-               {currentEntry.slots.length > 0 && (
-                  <div className="flex flex-wrap gap-3 mb-8">
-                     {currentEntry.slots.map(slot => (
-                        <div key={slot.id} className="flex items-center gap-2 px-4 py-2 bg-page border border-border-hiyori rounded-full text-ink-muted font-medium shadow-sm">
-                           <span className="text-brand">{availableIcons[slot.icon as IconName]}</span>
-                           <span>{slot.text}</span>
-                        </div>
-                        ))}
-                     </div>
-                     )}
+      // Keyed on the date (not wrapped in AnimatePresence) so switching to a day
+      // with no entry always gets a clean remount instead of relying on an exit
+      // animation to swap content - AnimatePresence here left the outgoing view
+      // stuck mid-transition and the new content never appeared.
+      <motion.div
+         key={currentDateKey}
+         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+         className={currentEntry ? "space-y-8" : "flex flex-col items-center justify-center h-full text-center space-y-6"}
+      >
+            {currentEntry ? (
+               <>
+                  <div>
+                     <h1 className="text-4xl font-extrabold text-ink leading-tight mb-6">{currentEntry.title}</h1>
+
+                     {currentEntry.slots.length > 0 && (
+                        <div className="flex flex-wrap gap-3 mb-8">
+                           {currentEntry.slots.map(slot => (
+                              <div key={slot.id} className="flex items-center gap-2 px-4 py-2 bg-page border border-border-hiyori rounded-full text-ink-muted font-medium shadow-sm">
+                                 <span className="text-brand">{availableIcons[slot.icon as IconName]}</span>
+                                 <span>{slot.text}</span>
+                              </div>
+                              ))}
+                           </div>
+                           )}
+
+                        {currentEntry.body.trim().length > 0 && (
+                           <p className="text-xs font-bold text-ink-faint uppercase tracking-wider flex items-center gap-2 mb-8">
+                              <span>{currentEntry.body.replace(/\s+/g, "").length} characters</span>
+                              <span aria-hidden="true">·</span>
+                              <span>{knownWordCount} known word{knownWordCount !== 1 ? "s" : ""} used</span>
+                           </p>
+                        )}
                   </div>
-                  
+
                   <div className="w-full h-px bg-border-hiyori" />
 
                   <div className="relative">
@@ -409,29 +556,25 @@ return (
                         })}
                      </div>
                   </div>
-               </motion.div>
-               ) : (
-               <motion.div 
-               key="empty"
-               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-               className="flex flex-col items-center justify-center h-full text-center space-y-6"
-               >
-               <div className="w-24 h-24 bg-surface-hover rounded-full flex items-center justify-center text-ink-faint">
-                  <PenTool className="w-10 h-10" />
-               </div>
-               <div>
-                  <h3 className="text-2xl font-bold text-ink">No entry yet</h3>
-                  <p className="text-ink-muted mt-2 max-w-md">Write about your day in Japanese. Don't worry about making mistakes, just practice!</p>
-               </div>
-               <button 
-               onClick={startWriting}
-               className="mt-4 px-8 py-4 rounded-xl bg-page border-2 border-border-hiyori text-ink font-bold hover:border-brand hover:text-brand transition-all shadow-sm"
-               >
-               Start Writing
-            </button>
-         </motion.div>
-         )}
-      </AnimatePresence>
+               </>
+            ) : (
+               <>
+                  <div className="w-24 h-24 bg-surface-hover rounded-full flex items-center justify-center text-ink-faint">
+                     <PenTool className="w-10 h-10" />
+                  </div>
+                  <div>
+                     <h3 className="text-2xl font-bold text-ink">No entry yet</h3>
+                     <p className="text-ink-muted mt-2 max-w-md">Write about your day in Japanese. Don't worry about making mistakes, just practice!</p>
+                  </div>
+                  <button
+                     onClick={startWriting}
+                     className="mt-4 px-8 py-4 rounded-xl bg-page border-2 border-border-hiyori text-ink font-bold hover:border-brand hover:text-brand transition-all shadow-sm"
+                  >
+                     Start Writing
+                  </button>
+               </>
+            )}
+      </motion.div>
       ) : (
       <motion.div 
       key="edit"
@@ -449,22 +592,24 @@ return (
       <div className="flex flex-wrap items-center gap-3">
          {editSlots.map(slot => (
             <div key={slot.id} className="flex items-center gap-2 px-2 py-1.5 bg-page border border-border-hiyori rounded-xl relative group">
-               <button 
+               <button
                onClick={() => setShowIconPickerFor(showIconPickerFor === slot.id ? null : slot.id)}
+               aria-label="Choose icon for slot"
                className="p-1.5 hover:bg-surface-hover rounded-lg text-brand transition-colors"
                >
                {availableIcons[slot.icon as IconName]}
             </button>
-            
+
             {/* Icon Picker Popover */}
             {showIconPickerFor === slot.id && (
                <>
                <div className="fixed inset-0" onClick={() => setShowIconPickerFor(null)} />
                   <div className="absolute top-full left-0 mt-2 bg-surface border border-border-hiyori shadow-xl rounded-2xl p-2 flex gap-1 z-30">
                      {Object.entries(availableIcons).map(([name, icon]) => (
-                        <button 
+                        <button
                         key={name}
                         onClick={() => updateSlotIcon(slot.id, name)}
+                        aria-label={name}
                         className="p-2 hover:bg-page rounded-xl text-ink-muted hover:text-brand transition-colors"
                         >
                         {icon}
@@ -481,9 +626,10 @@ return (
                   placeholder="short text"
                   className="w-24 bg-transparent border-none text-ink text-sm font-medium focus:outline-none placeholder:text-ink-faint"
                   />
-                  <button 
+                  <button
                      onClick={() => removeSlot(slot.id)}
-                     className="p-1 hover:bg-deck-cream text-ink-faint hover:text-red-500 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                     aria-label="Remove slot"
+                     className="p-1 hover:bg-deck-cream text-ink-faint hover:text-destructive rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                   >
                      <X className="w-4 h-4" />
                   </button>
@@ -522,17 +668,12 @@ return (
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && createPortal(
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
-            <motion.div
-               initial={{ opacity: 0, scale: 0.95 }}
-               animate={{ opacity: 1, scale: 1 }}
-               className="bg-surface rounded-3xl shadow-xl border border-border-hiyori max-w-sm w-full p-8"
-            >
+         <Modal onClose={() => setShowDeleteConfirm(false)} titleId="delete-entry-title" className="max-w-sm w-full p-8">
                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center">
-                     <Trash2 className="w-5 h-5 text-red-500" />
+                  <div className="w-10 h-10 rounded-2xl bg-destructive-surface flex items-center justify-center">
+                     <Trash2 className="w-5 h-5 text-destructive" />
                   </div>
-                  <h3 className="text-xl font-bold text-ink">Delete entry?</h3>
+                  <h3 id="delete-entry-title" className="text-xl font-bold text-ink">Delete entry?</h3>
                </div>
                <p className="text-ink-muted mb-6">Are you sure you want to delete this entry? This cannot be undone.</p>
                <div className="flex gap-3">
@@ -544,13 +685,44 @@ return (
                   </button>
                   <button
                      onClick={confirmDelete}
-                     className="flex-1 px-6 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors cursor-pointer"
+                     className="flex-1 px-6 py-3 bg-destructive text-white font-bold rounded-xl hover:bg-destructive-hover transition-colors cursor-pointer"
                   >
                      Delete
                   </button>
                </div>
-            </motion.div>
-         </div>,
+         </Modal>,
+         document.body
+      )}
+
+      {/* Discard Unsaved Changes Modal */}
+      {showDiscardConfirm && createPortal(
+         <Modal
+            onClose={() => setShowDiscardConfirm(false)}
+            titleId="discard-changes-title"
+            className="max-w-sm w-full p-8"
+         >
+               <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-2xl bg-destructive-surface flex items-center justify-center">
+                     <AlertTriangle className="w-5 h-5 text-destructive" />
+                  </div>
+                  <h3 id="discard-changes-title" className="text-xl font-bold text-ink">Discard changes?</h3>
+               </div>
+               <p className="text-ink-muted mb-6">You have unsaved edits to this entry. Discarding will lose them for good.</p>
+               <div className="flex gap-3">
+                  <button
+                     onClick={() => setShowDiscardConfirm(false)}
+                     className="flex-1 px-6 py-3 bg-surface-hover text-ink font-bold rounded-xl hover:bg-border-hiyori transition-colors cursor-pointer"
+                  >
+                     Keep Editing
+                  </button>
+                  <button
+                     onClick={confirmDiscardEdit}
+                     className="flex-1 px-6 py-3 bg-destructive text-white font-bold rounded-xl hover:bg-destructive-hover transition-colors cursor-pointer"
+                  >
+                     Discard
+                  </button>
+               </div>
+         </Modal>,
          document.body
       )}
     </>

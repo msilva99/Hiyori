@@ -1,0 +1,7 @@
+/* Self-hosted so kanji/kana render consistently across OSes without relying
+   on the CSP-blocked Google Fonts CDN or whatever CJK font (if any) is installed locally. */
+@import '@fontsource/noto-sans-jp/400.css';
+@import '@fontsource/noto-sans-jp/500.css';
+@import '@fontsource/noto-sans-jp/700.css';
+@import '@fontsource/noto-sans-jp/800.css';
+@import '@fontsource/noto-sans-jp/900.css';

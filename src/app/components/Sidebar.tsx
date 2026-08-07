@@ -1,22 +1,31 @@
+import { useRef } from "react";
 import { Link, useLocation } from "react-router";
-import { 
-   Home, 
-   BookOpen, 
-   PenTool, 
+import {
+   Home,
+   BookOpen,
+   Layers,
+   ClipboardCheck,
+   Repeat,
+   PenTool,
    BookA,
-   BarChart2, 
-   Bot, 
+   BarChart2,
+   Bot,
    Settings,
    HelpCircle,
    X
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useFocusTrap } from "../../lib/useFocusTrap";
 import { ThemeToggle } from "./ThemeToggle";
+import iconT from "../../media/icon-t.png";
 
 // Navigation is data-driven so future pages can be enabled or disabled in one place.
 const navItems = [
 { name: "Home", path: "/", icon: Home },
 { name: "Decks", path: "/decks", icon: BookOpen },
+{ name: "Study", path: "/study", icon: Layers },
+{ name: "Test", path: "/test", icon: ClipboardCheck },
+{ name: "Routines", path: "/routines", icon: Repeat },
 { name: "Journal", path: "/journal", icon: PenTool },
 { name: "Dictionary", path: "/dictionary", icon: BookA, disabled: true },
 { name: "Insights", path: "/insights", icon: BarChart2, disabled: true },
@@ -30,12 +39,12 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
       <>
          <div>
              <div className="flex items-center gap-3 mb-10 px-2">
-                <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-sm overflow-hidden">
-                   🦊
+                <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                   <img src={iconT} alt="Hiyori" className="w-full h-full object-cover p-2" />
                 </div>
                 <span className="text-2xl font-bold tracking-tight text-ink">Hiyori</span>
                 {onClose && (
-                   <button onClick={onClose} className="ml-auto p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-xl transition-colors cursor-pointer">
+                   <button onClick={onClose} aria-label="Close menu" className="ml-auto p-2 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-xl transition-colors cursor-pointer">
                       <X className="w-5 h-5" />
                    </button>
                 )}
@@ -107,6 +116,26 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
          );
       }
 
+function MobileNavDrawer({ onClose }: { onClose: () => void }) {
+   const asideRef = useRef<HTMLElement>(null);
+   useFocusTrap(asideRef, onClose);
+
+   return (
+      <div className="xl:hidden fixed inset-0 z-50">
+         <div className="fixed inset-0 bg-black/30" onClick={onClose} />
+          <aside
+             ref={asideRef}
+             role="dialog"
+             aria-modal="true"
+             aria-label="Navigation menu"
+             className="fixed top-0 left-0 w-70 h-screen bg-surface border-r border-border-hiyori flex flex-col justify-between py-8 px-6 shadow-lg z-10"
+          >
+             <SidebarNav onClose={onClose} />
+         </aside>
+      </div>
+   );
+}
+
 export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
    return (
    <>
@@ -115,15 +144,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
          <SidebarNav />
       </aside>
 
-      {/* Mobile: fixed overlay drawer */}
-      {isOpen && (
-         <div className="xl:hidden fixed inset-0 z-50">
-            <div className="fixed inset-0 bg-black/30" onClick={onClose} />
-             <aside className="fixed top-0 left-0 w-70 h-screen bg-surface border-r border-border-hiyori flex flex-col justify-between py-8 px-6 shadow-lg z-10">
-                <SidebarNav onClose={onClose} />
-            </aside>
-         </div>
-      )}
+      {/* Mobile: fixed overlay drawer, mounted/unmounted so it can own its own focus trap */}
+      {isOpen && <MobileNavDrawer onClose={onClose ?? (() => {})} />}
    </>
    );
 }

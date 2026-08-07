@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Card, Deck } from '../data/types';
 import { seedData } from '../data/seedData';
+import { createInitialSrsState, scheduleNextReview, type SrsGrade } from '../data/srs';
 
 
 function createId() {
@@ -20,6 +21,8 @@ type DecksStore = {
    deleteDeck: (deckId: string) => void;
 
    recordDeckMasteryStep: (deckId: string) => void;
+
+   recordCardReview: (deckId: string, cardId: string, grade: SrsGrade) => void;
 
    addCard: (deckId: string, card: CardInput) => void;
    updateCard: (deckId: string, cardId: string, updates: Partial<CardInput>) => void;
@@ -65,6 +68,7 @@ export const useDecksStore = create<DecksStore>()(
                cards: cards.map((card) => ({
                   id: createId(),
                   ...card,
+                  srs: createInitialSrsState(),
                   createdAt: now,
                   updatedAt: now,
                })),
@@ -115,6 +119,34 @@ export const useDecksStore = create<DecksStore>()(
             }));
          },
 
+         // card review (SRS) actions
+
+         recordCardReview: (deckId, cardId, grade) => {
+            const now = new Date().toISOString();
+
+            set((state) => ({
+               decks: state.decks.map((deck) => {
+                  if (deck.id !== deckId) {
+                     return deck;
+                  }
+
+                  return {
+                     ...deck,
+                     cards: deck.cards.map((card) =>
+                        card.id === cardId
+                        ? {
+                           ...card,
+                           srs: scheduleNextReview(card.srs, grade),
+                           updatedAt: now,
+                        }
+                        : card
+                     ),
+                     updatedAt: now,
+                  };
+               }),
+            }));
+         },
+
          // card actions
 
          addCard: (deckId, card) => {
@@ -123,6 +155,7 @@ export const useDecksStore = create<DecksStore>()(
             const newCard: Card = {
                id: createId(),
                ...card,
+               srs: createInitialSrsState(),
                createdAt: now,
                updatedAt: now,
             };
@@ -195,6 +228,29 @@ export const useDecksStore = create<DecksStore>()(
       }),
       {
          name: "hiyori-decks",
+         version: 2,
+         // v2 adds SRS scheduling to each card. Older saved data (v1 or unversioned)
+         // won't have `card.srs`, so backfill it rather than resetting progress.
+         migrate: (persistedState, version) => {
+            const state = persistedState as { decks?: Deck[] } | undefined;
+            const decks = state?.decks ?? [];
+
+            if (version >= 2) {
+               return state as DecksStore;
+            }
+
+            const migratedDecks = decks.map((deck) => ({
+               ...deck,
+               cards: deck.cards.map((card) => ({
+                  ...card,
+                  srs: card.srs ?? createInitialSrsState(),
+               })),
+            }));
+
+            // Only `decks` round-trips through JSON; zustand merges this onto the
+            // store's live actions on rehydration, so a partial cast here is safe.
+            return { ...state, decks: migratedDecks } as DecksStore;
+         },
       }
    )
 );

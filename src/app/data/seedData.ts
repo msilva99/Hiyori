@@ -1,10 +1,26 @@
 import type { HiyoriData } from "./types";
+import { createInitialSrsState } from "./srs";
+import { jlptN5Vocabulary } from "./jlptN5";
+import { jlptN4Vocabulary } from "./jlptN4";
 
 const now = new Date().toISOString();
 
+// Turns a plain vocabulary list into a deck's card array, assigning ids/timestamps
+// the same way the rest of the seed data does.
+function buildDeckCards(vocabulary: typeof jlptN5Vocabulary) {
+   return vocabulary.map((word, index) => ({
+      id: `${index + 1}`,
+      ...word,
+      createdAt: now,
+      updatedAt: now,
+   }));
+}
+
 // Starter data for a fresh install/profile.
 // The storage layer uses this only when no saved Hiyori data exists yet.
-export const seedData: HiyoriData = {
+// Left untyped (rather than typed as HiyoriData) since cards here don't carry
+// srs state yet — that's backfilled below so this literal doesn't need touching.
+const rawSeedData = {
    version: 1,
    decks: [
       {
@@ -856,7 +872,31 @@ export const seedData: HiyoriData = {
             },
          ],
       },
+      {
+         id: "5",
+         title: "JLPT N5",
+         masteryPerfectSessions: 0,
+         createdAt: now,
+         updatedAt: now,
+         cards: buildDeckCards(jlptN5Vocabulary),
+      },
+      {
+         id: "6",
+         title: "JLPT N4",
+         masteryPerfectSessions: 0,
+         createdAt: now,
+         updatedAt: now,
+         cards: buildDeckCards(jlptN4Vocabulary),
+      },
    ],
    journalEntries: [],
    studyLog: [],
+};
+
+export const seedData: HiyoriData = {
+   ...rawSeedData,
+   decks: rawSeedData.decks.map((deck) => ({
+      ...deck,
+      cards: deck.cards.map((card) => ({ ...card, srs: createInitialSrsState() })),
+   })),
 };

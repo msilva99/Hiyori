@@ -1,12 +1,24 @@
 // These types describe the shape of Hiyori's saved data.
 // Keep them plain and JSON-friendly because they will eventually be saved to disk.
 
+export type CardSrsState = {
+	// ISO date/time string. New cards default to "now" so they're immediately due.
+	dueDate: string;
+	// Days until the next review, once the card has been reviewed at least once.
+	interval: number;
+	// SM-2-style ease factor; grows slightly on "easy", shrinks on "again".
+	easeFactor: number;
+	// Consecutive correct (good/easy) reviews since the last "again".
+	repetitions: number;
+};
+
 export type Card = {
 	id: string;
 	kanji: string;
 	kana: string;
 	romaji: string;
 	meaning: string;
+	srs: CardSrsState;
 	createdAt: string;
 	updatedAt: string;
 };
