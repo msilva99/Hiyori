@@ -88,6 +88,28 @@ export function DeckDetail() {
    // Export Toast
    const [showToast, setShowToast] = useState(false);
 
+   // Search checks every visible vocabulary field so the table feels forgiving.
+   const filteredWords = words.filter(w =>
+      w.kanji.includes(searchQuery) ||
+      w.kana.includes(searchQuery) ||
+      w.romaji.includes(searchQuery.toLowerCase()) ||
+      w.meaning.toLowerCase().includes(searchQuery.toLowerCase())
+   );
+
+   // Decks can run into the hundreds/thousands of cards (e.g. imported JLPT lists), so the
+   // word list is virtualized: only the rows actually in view get mounted, no matter how
+   // many cards the deck has. Row height varies a little (view vs. inline-edit), so sizes
+   // are measured from the real rendered row rather than assumed.
+   // Declared before the `!deck` early return below so these hooks always run, regardless
+   // of whether a deck is found - hooks can't be called conditionally.
+   const tableScrollRef = useRef<HTMLDivElement>(null);
+   const rowVirtualizer = useVirtualizer({
+      count: filteredWords.length,
+      getScrollElement: () => tableScrollRef.current,
+      estimateSize: () => 76,
+      overscan: 8,
+   });
+
    if (!deck) {
       return (
          <div className="space-y-6 font-sans max-w-5xl mx-auto w-full">
@@ -236,25 +258,6 @@ export function DeckDetail() {
       setDeleteConfirm(null);
    };
 
-   // Search checks every visible vocabulary field so the table feels forgiving.
-   const filteredWords = words.filter(w =>
-      w.kanji.includes(searchQuery) ||
-      w.kana.includes(searchQuery) ||
-      w.romaji.includes(searchQuery.toLowerCase()) ||
-      w.meaning.toLowerCase().includes(searchQuery.toLowerCase())
-   );
-
-   // Decks can run into the hundreds/thousands of cards (e.g. imported JLPT lists), so the
-   // word list is virtualized: only the rows actually in view get mounted, no matter how
-   // many cards the deck has. Row height varies a little (view vs. inline-edit), so sizes
-   // are measured from the real rendered row rather than assumed.
-   const tableScrollRef = useRef<HTMLDivElement>(null);
-   const rowVirtualizer = useVirtualizer({
-      count: filteredWords.length,
-      getScrollElement: () => tableScrollRef.current,
-      estimateSize: () => 76,
-      overscan: 8,
-   });
    const showBulkCheckboxColumn = isBulkMode && bulkAction === 'delete';
    const wordTableColumns = showBulkCheckboxColumn
       ? "48px minmax(140px,1.2fr) minmax(120px,1fr) minmax(160px,1.6fr) minmax(88px,auto)"
