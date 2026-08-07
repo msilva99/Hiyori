@@ -5,6 +5,7 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    environment: Hiyori
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
