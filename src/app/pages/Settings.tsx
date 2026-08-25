@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { RefreshCw, DownloadCloud, CheckCircle2, AlertTriangle } from "lucide-react";
+import { RefreshCw, DownloadCloud, CheckCircle2, AlertTriangle, Sun, Moon } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { cn } from "../../lib/utils";
 import { useUpdaterStore } from "../store/updaterStore";
+import { useThemeStore } from "../store/themeStore";
 
 export function Settings() {
    const desktop = isTauri();
    const [currentVersion, setCurrentVersion] = useState<string | null>(null);
    const { status, error, checkForUpdates } = useUpdaterStore();
+   const { theme, toggle: toggleTheme } = useThemeStore();
 
    useEffect(() => {
       if (!desktop) return;
@@ -29,6 +31,30 @@ export function Settings() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
+            className="bg-surface border border-border-hiyori rounded-3xl shadow-sm p-6"
+         >
+            <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
+               {theme === "light" ? <Sun className="w-5 h-5 text-brand" /> : <Moon className="w-5 h-5 text-brand" />} Appearance
+            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+               <div>
+                  <p className="text-ink font-medium">Theme</p>
+                  <p className="text-sm text-ink-muted mt-1">Currently using {theme === "light" ? "Light" : "Dark"} mode.</p>
+               </div>
+               <button
+                  onClick={toggleTheme}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20 shrink-0 cursor-pointer"
+               >
+                  {theme === "light" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  Switch to {theme === "light" ? "Dark" : "Light"} Mode
+               </button>
+            </div>
+         </motion.div>
+
+         <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
             className="bg-surface border border-border-hiyori rounded-3xl shadow-sm p-6"
          >
             <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">

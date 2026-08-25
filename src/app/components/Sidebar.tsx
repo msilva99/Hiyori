@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useFocusTrap } from "../../lib/useFocusTrap";
-import { ThemeToggle } from "./ThemeToggle";
 import iconT from "../../media/icon-t.png";
 
 // Navigation is data-driven so future pages can be enabled or disabled in one place.
@@ -90,7 +89,6 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
             </div>
 
              <div className="shrink-0 space-y-2 pt-8 border-t border-border-hiyori">
-                <ThemeToggle />
                 <Link
                    to="/settings"
                    onClick={() => onClose?.()}
