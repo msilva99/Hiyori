@@ -37,7 +37,7 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
 
    return (
       <>
-         <div>
+         <div className="flex-1 min-h-0 overflow-y-auto">
              <div className="flex items-center gap-3 mb-10 px-2">
                 <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center overflow-hidden shrink-0">
                    <img src={iconT} alt="Hiyori" className="w-full h-full object-cover p-2" />
@@ -89,18 +89,21 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
                </nav>
             </div>
 
-             <div className="space-y-2 pt-8 border-t border-border-hiyori">
+             <div className="shrink-0 space-y-2 pt-8 border-t border-border-hiyori">
                 <ThemeToggle />
-                <button
-                   disabled
-                   className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-ink-faint opacity-60 cursor-not-allowed transition-all"
+                <Link
+                   to="/settings"
+                   onClick={() => onClose?.()}
+                   className={cn(
+                      "flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-all",
+                      location.pathname === "/settings"
+                         ? "bg-page text-brand font-medium"
+                         : "text-ink-muted hover:bg-page hover:text-ink"
+                   )}
                 >
                    <Settings className="w-5 h-5" strokeWidth={2} />
                    <span>Settings</span>
-                   <span className="ml-auto text-[10px] uppercase font-bold tracking-wider text-ink-faint bg-surface-hover px-2 py-0.5 rounded-full">
-                      Soon
-                   </span>
-                </button>
+                </Link>
                 <button
                    disabled
                    className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-ink-faint opacity-60 cursor-not-allowed transition-all"
@@ -128,7 +131,7 @@ function MobileNavDrawer({ onClose }: { onClose: () => void }) {
              role="dialog"
              aria-modal="true"
              aria-label="Navigation menu"
-             className="fixed top-0 left-0 w-70 h-screen bg-surface border-r border-border-hiyori flex flex-col justify-between py-8 px-6 shadow-lg z-10"
+             className="fixed top-0 left-0 w-70 h-screen bg-surface border-r border-border-hiyori flex flex-col py-8 px-6 shadow-lg z-10"
           >
              <SidebarNav onClose={onClose} />
          </aside>
@@ -140,7 +143,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
    return (
    <>
       {/* Desktop: sticky sidebar in flex flow (exactly as before) */}
-      <aside className="hidden xl:flex sticky top-0 w-70 h-screen bg-surface border-r border-border-hiyori flex-col justify-between py-8 px-6 shadow-sm z-10">
+      <aside className="hidden xl:flex sticky top-0 w-70 h-screen bg-surface border-r border-border-hiyori flex-col py-8 px-6 shadow-sm z-10">
          <SidebarNav />
       </aside>
 

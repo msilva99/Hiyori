@@ -1,10 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
+import { UpdaterModal } from "./UpdaterModal";
+import { useUpdaterStore } from "../store/updaterStore";
 
 export function Layout() {
    const [sidebarOpen, setSidebarOpen] = useState(false);
+   const checkForUpdates = useUpdaterStore((state) => state.checkForUpdates);
+
+   useEffect(() => {
+      // Silent: this is a no-op on the web build, and it only surfaces UI (via UpdaterModal)
+      // when an update is actually found - see updaterStore's hasSurfaced flag.
+      checkForUpdates();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
 
    return (
    <div className="flex w-full min-h-screen bg-page font-sans text-ink">
@@ -22,6 +32,7 @@ export function Layout() {
             <Outlet />
          </div>
       </main>
+      <UpdaterModal />
    </div>
    );
 }
