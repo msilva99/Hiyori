@@ -67,3 +67,27 @@ export type HiyoriData = {
 	journalEntries: JournalEntry[];
 	studyLog: StudyLogEntry[];
 };
+
+export type AiTutorMessage = {
+	id: string;
+	role: "user" | "assistant";
+	content: string;
+	// ISO text, same convention as the rest of this file.
+	createdAt: string;
+	// Which model produced an assistant message (display only).
+	model?: string;
+	// The stream was stopped or failed before the answer finished.
+	incomplete?: boolean;
+	// The turn ended in an error rather than a real answer.
+	error?: boolean;
+};
+
+export type AiTutorConversation = {
+	id: string;
+	title: string;
+	messages: AiTutorMessage[];
+	createdAt: string;
+	updatedAt: string;
+	// e.g. "Gemini · gemini-2.0-flash" - shown in the UI, never contains a secret.
+	providerLabel?: string;
+};

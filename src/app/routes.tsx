@@ -12,6 +12,7 @@ import { KanaPractice } from "./pages/KanaPractice";
 import { Journal } from "./pages/Journal";
 import { Dictionary } from "./pages/Dictionary";
 import { Settings } from "./pages/Settings";
+import { AiTutorRoute } from "./pages/AiTutor";
 
 // tmp playground
 import { DecksStorePlayground } from "./pages/DecksStorePlayground";
@@ -34,9 +35,10 @@ export const router = createBrowserRouter([
          { path: "journal", Component: Journal },
          { path: "dictionary", Component: Dictionary },
          { path: "settings", Component: Settings },
-         // These future pages are intentionally placeholders and are disabled in the sidebar.
+         // Insights is intentionally a placeholder and is disabled in the sidebar.
          { path: "insights", Component: () => <div className="p-8"><h1 className="text-2xl font-bold text-ink">Insights</h1><p className="mt-4 text-ink-muted">Coming soon!</p></div> },
-         { path: "ai-tutor", Component: () => <div className="p-8"><h1 className="text-2xl font-bold text-ink">AI Tutor</h1><p className="mt-4 text-ink-muted">Coming soon!</p></div> },
+         // AI Tutor guards itself: redirects to /settings unless it's on and running on desktop.
+         { path: "ai-tutor", Component: AiTutorRoute },
 
          // tmp playground
          { path: "store-playground", Component: DecksStorePlayground },

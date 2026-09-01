@@ -6,6 +6,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { cn } from "../../lib/utils";
 import { useUpdaterStore } from "../store/updaterStore";
 import { useThemeStore } from "../store/themeStore";
+import { AiTutorSettingsCard } from "../components/settings/AiTutorSettingsCard";
 
 export function Settings() {
    const desktop = isTauri();
@@ -101,6 +102,8 @@ export function Settings() {
                </div>
             )}
          </motion.div>
+
+         <AiTutorSettingsCard />
       </div>
    );
 }

@@ -3,6 +3,7 @@ import { Outlet } from "react-router";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { UpdaterModal } from "./UpdaterModal";
+import { AiTutorOnboardingModal } from "./AiTutorOnboardingModal";
 import { useUpdaterStore } from "../store/updaterStore";
 
 export function Layout() {
@@ -33,6 +34,7 @@ export function Layout() {
          </div>
       </main>
       <UpdaterModal />
+      <AiTutorOnboardingModal />
    </div>
    );
 }

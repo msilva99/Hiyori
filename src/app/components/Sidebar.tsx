@@ -14,8 +14,10 @@ import {
    HelpCircle,
    X
 } from "lucide-react";
+import { isTauri } from "@tauri-apps/api/core";
 import { cn } from "../../lib/utils";
 import { useFocusTrap } from "../../lib/useFocusTrap";
+import { useSettingsStore } from "../store/settingsStore";
 import iconT from "../../media/icon-t.png";
 
 // Navigation is data-driven so future pages can be enabled or disabled in one place.
@@ -28,11 +30,15 @@ const navItems = [
 { name: "Journal", path: "/journal", icon: PenTool },
 { name: "Dictionary", path: "/dictionary", icon: BookA, disabled: true },
 { name: "Insights", path: "/insights", icon: BarChart2, disabled: true },
-{ name: "AI Tutor", path: "/ai-tutor", icon: Bot, disabled: true },
+{ name: "AI Tutor", path: "/ai-tutor", icon: Bot },
 ];
 
 function SidebarNav({ onClose }: { onClose?: () => void }) {
    const location = useLocation();
+   const aiTutorMode = useSettingsStore((state) => state.aiTutorMode);
+   // The AI Tutor is desktop-only and stays hidden until the user turns it on in Settings.
+   const showAiTutor = isTauri() && aiTutorMode !== "off";
+   const items = navItems.filter((item) => item.path !== "/ai-tutor" || showAiTutor);
 
    return (
       <>
@@ -50,7 +56,7 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
              </div>
 
             <nav className="space-y-2">
-               {navItems.map((item) => {
+               {items.map((item) => {
                   const isActive = location.pathname === item.path || (item.path !== "/" && location.pathname.startsWith(item.path));
                   return (
                   <Link
