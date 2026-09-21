@@ -254,7 +254,7 @@ export function Home() {
    const { totalDue, deckDueCounts } = getDueSummary(decks);
 
    return (
-   <div className="space-y-7 font-sans max-w-5xl mx-auto w-full">
+   <div className="space-y-7 font-sans max-w-4xl mx-auto w-full">
       {/* Header */}
       <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -295,7 +295,7 @@ export function Home() {
             </div>
 
             {/* Week days tracker */}
-            <div className="flex justify-between items-end mt-4 flex-wrap gap-y-1.5">
+            <div className="flex items-end gap-3 mt-4 flex-wrap gap-y-1.5">
                {weekDays.map((day, i) => (
                   <div key={i} className="flex flex-col items-center gap-1">
                      <div
