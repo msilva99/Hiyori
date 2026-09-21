@@ -349,8 +349,9 @@ function RoutineEditorModal({ routine, decks, onCancel, onSave }: RoutineEditorM
 
          <div className="p-6 space-y-6 overflow-y-auto">
             <div>
-               <label className="text-sm font-bold text-ink-muted uppercase tracking-wider block mb-2">Name</label>
+               <label htmlFor="routine-name" className="text-sm font-bold text-ink-muted uppercase tracking-wider block mb-2">Name</label>
                <input
+                  id="routine-name"
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}

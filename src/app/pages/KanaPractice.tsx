@@ -214,7 +214,12 @@ export function KanaPractice() {
             <div className="w-full bg-border-hiyori rounded-full h-2 overflow-hidden mb-12">
                <div className="bg-brand h-2 transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
             </div>
-         
+
+            {/* Screen-reader-only announcement; the animated kana next to it is purely visual. */}
+            <div role="status" aria-live="polite" className="sr-only">
+               {isWrong ? "Incorrect, try again" : `Character: ${currentKana.k}`}
+            </div>
+
             <div className="flex flex-col items-center">
                <AnimatePresence mode="wait">
                   <motion.div 
@@ -237,6 +242,7 @@ export function KanaPractice() {
                      onChange={handleInput}
                      onKeyDown={handleKeyDown}
                      placeholder="romaji..."
+                     aria-label="Type the romaji reading"
                      className={cn(
                      "w-full text-center text-3xl font-bold px-6 py-4 bg-surface border-2 rounded-2xl shadow-sm outline-none transition-all placeholder:text-ink-faint placeholder:font-medium placeholder:text-2xl",
                      isWrong 
@@ -320,6 +326,7 @@ export function KanaPractice() {
                      <button
                         key={row.id}
                         onClick={() => toggleRow(row.id)}
+                        aria-pressed={selectedRows.has(row.id)}
                         className={cn(
                            "flex flex-col items-center p-4 rounded-2xl border-2 transition-all group",
                            selectedRows.has(row.id) 
@@ -355,6 +362,7 @@ export function KanaPractice() {
                      <button
                         key={row.id}
                         onClick={() => toggleRow(row.id)}
+                        aria-pressed={selectedRows.has(row.id)}
                         className={cn(
                            "flex flex-col items-center p-4 rounded-2xl border-2 transition-all group",
                            selectedRows.has(row.id) 

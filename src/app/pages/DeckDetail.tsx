@@ -425,11 +425,12 @@ export function DeckDetail() {
                <div className="flex items-center gap-3">
                   <div className="relative">
                      <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
-                     <input 
-                        type="text" 
+                     <input
+                        type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search words..." 
+                        placeholder="Search words..."
+                        aria-label="Search words"
                         className="pl-10 pr-4 py-2.5 bg-surface border border-border-hiyori rounded-xl text-ink placeholder:text-ink-faint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all shadow-sm"
                      />
                   </div>
@@ -444,19 +445,23 @@ export function DeckDetail() {
                          <button
                            onClick={() => setShowBulkMenu(!showBulkMenu)}
                            onBlur={() => setTimeout(() => setShowBulkMenu(false), 150)}
+                           aria-haspopup="true"
+                           aria-expanded={showBulkMenu}
                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-hiyori bg-surface text-ink-muted font-medium hover:bg-surface-hover hover:text-ink transition-all shadow-sm cursor-pointer text-sm"
                         >
                            <CheckSquare className="w-4 h-4" /> Bulk Actions <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                          {showBulkMenu && (
-                            <div className="absolute right-0 top-full mt-1 w-44 bg-surface border border-border-hiyori shadow-xl rounded-2xl z-20 overflow-hidden py-1">
+                            <div role="menu" className="absolute right-0 top-full mt-1 w-44 bg-surface border border-border-hiyori shadow-xl rounded-2xl z-20 overflow-hidden py-1">
                                <button
+                                  role="menuitem"
                                   onClick={() => enterBulkMode('edit')}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-ink font-medium hover:bg-surface-hover transition-colors text-sm cursor-pointer"
                                >
                                   <Edit2 className="w-4 h-4 text-ink-muted" /> Bulk Edit
                                </button>
                                <button
+                                  role="menuitem"
                                   onClick={() => enterBulkMode('delete')}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-destructive font-medium hover:bg-destructive-surface transition-colors text-sm cursor-pointer"
                                >
@@ -692,7 +697,7 @@ export function DeckDetail() {
                                              </div>
                                              <div role="cell" className="px-6 py-4 flex items-center justify-end">
                                                 {!isBulkMode && (
-                                                <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100! transition-opacity">
                                                     <button
                                                        onClick={() => handleEditWord(word)}
                                                       aria-label={`Edit ${word.kanji || word.kana || "word"}`}
@@ -872,7 +877,7 @@ export function DeckDetail() {
 
       {/* Export Toast */}
       {showToast && createPortal(
-         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-success text-white rounded-2xl shadow-lg border border-success-hover">
+         <div role="status" aria-live="polite" className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-success text-white rounded-2xl shadow-lg border border-success-hover">
             <CheckCircle className="w-5 h-5 shrink-0" />
             <span className="font-bold text-sm">Deck exported successfully!</span>
          </div>,

@@ -254,11 +254,12 @@ export function Decks() {
          >
             <div className="flex-1 relative">
                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint" />
-               <input 
-                  type="text" 
+               <input
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search decks..." 
+                  placeholder="Search decks..."
+                  aria-label="Search decks"
                   className="w-full pl-12 pr-4 py-3 bg-transparent text-ink placeholder:text-ink-faint focus:outline-none rounded-xl"
                />
             </div>
@@ -270,6 +271,7 @@ export function Decks() {
                   onChange={(e) =>
                      setSortBy(e.target.value as typeof sortBy)
                   }
+                  aria-label="Sort decks by"
                   className="bg-transparent font-bold text-ink focus:outline-none cursor-pointer"
                >
                   <option value="lastStudied">Last Studied</option>
@@ -305,6 +307,8 @@ export function Decks() {
                         <button
                            onClick={() => setActiveMenuId(activeMenuId === deck.id ? null : deck.id)}
                            aria-label={`More options for ${deck.title}`}
+                           aria-haspopup="true"
+                           aria-expanded={activeMenuId === deck.id}
                            className={cn(
                               "p-2 rounded-full transition-colors",
                               activeMenuId === deck.id
@@ -325,15 +329,18 @@ export function Decks() {
                                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                                     transition={{ duration: 0.15 }}
                                     className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border-hiyori shadow-xl rounded-2xl p-1 z-40"
+                                    role="menu"
                                  >
-                                    <Link 
-                                       to={`/decks/${deck.id}`} 
+                                    <Link
+                                       to={`/decks/${deck.id}`}
+                                       role="menuitem"
                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink hover:bg-page rounded-xl transition-colors"
                                     >
                                        <Edit2 className="w-4 h-4 text-ink-muted" /> Edit Deck Info
                                     </Link>
                                     <button
                                        onClick={() => handleDelete(deck)}
+                                       role="menuitem"
                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-destructive-hover hover:bg-destructive-surface rounded-xl transition-colors"
                                     >
                                        <Trash2 className="w-4 h-4 text-destructive" /> Delete Deck
@@ -349,7 +356,7 @@ export function Decks() {
                            <Book className={cn("w-7 h-7", color.replace("bg-", "text-"))} />
                         </div>
                         <div className="pt-1">
-                           <h3 className="font-bold text-xl text-ink leading-tight mb-1 group-hover:text-brand transition-colors pr-12 line-clamp-2">{deck.title}</h3>
+                           <h2 className="font-bold text-xl text-ink leading-tight mb-1 group-hover:text-brand transition-colors pr-12 line-clamp-2">{deck.title}</h2>
                            <span className="text-ink-muted text-sm bg-surface-hover px-2 py-0.5 rounded-md font-medium">
                               {totalCards} cards
                            </span>
@@ -434,7 +441,7 @@ export function Decks() {
 
          {/* Import Error Toast */}
          {importError && createPortal(
-            <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-destructive text-white rounded-2xl shadow-lg border border-destructive-hover max-w-sm">
+            <div role="alert" className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-destructive text-white rounded-2xl shadow-lg border border-destructive-hover max-w-sm">
                <AlertTriangle className="w-5 h-5 shrink-0" />
                <span className="font-bold text-sm">{importError}</span>
             </div>,
