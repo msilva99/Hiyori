@@ -276,7 +276,7 @@ export function Home() {
           {/* Streak Card */}
           <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col justify-between relative overflow-hidden group"
+          className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col relative overflow-hidden group"
          >
          <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-brand/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
          <div className="flex items-center justify-between mb-3">
@@ -322,7 +322,7 @@ export function Home() {
       {/* Cards Due Card */}
       <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-      className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col justify-between relative overflow-hidden group"
+      className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col relative overflow-hidden group"
       >
       <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-success/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
       <div className="flex items-center justify-between mb-3">
