@@ -410,7 +410,7 @@ export function StudySession() {
 
          <div className="relative">
             {selectedDecks.length > 1 && (
-               <span className="absolute top-5 right-6 z-10 text-xs font-bold text-ink-faint bg-surface-hover px-2.5 py-1 rounded-full">
+               <span className="absolute top-5 right-6 z-10 text-xs font-bold text-ink-muted bg-surface-hover px-2.5 py-1 rounded-full">
                   {deckTitleById.get(currentCard.deckId)}
                </span>
             )}

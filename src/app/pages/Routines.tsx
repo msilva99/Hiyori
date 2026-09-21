@@ -410,7 +410,7 @@ function RoutineEditorModal({ routine, decks, onCancel, onSave }: RoutineEditorM
 
                      <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
                         {decks.length === 0 ? (
-                           <p className="text-ink-faint text-sm">No decks with words yet.</p>
+                           <p className="text-ink-muted text-sm">No decks with words yet.</p>
                         ) : (
                            decks.map((deck) => {
                               const isSelected = step.deckIds.includes(deck.id);

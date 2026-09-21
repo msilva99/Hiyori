@@ -482,7 +482,7 @@ return (
                            )}
 
                         {currentEntry.body.trim().length > 0 && (
-                           <p className="text-xs font-bold text-ink-faint uppercase tracking-wider flex items-center gap-2 mb-8">
+                           <p className="text-xs font-bold text-ink-muted uppercase tracking-wider flex items-center gap-2 mb-8">
                               <span>{currentEntry.body.replace(/\s+/g, "").length} characters</span>
                               <span aria-hidden="true">·</span>
                               <span>{knownWordCount} known word{knownWordCount !== 1 ? "s" : ""} used</span>

@@ -690,7 +690,7 @@ export function DeckDetail() {
                                              </div>
                                              <div role="cell" className="px-6 py-4 flex flex-col justify-center">
                                                 <span className="text-ink-muted font-medium">{word.kana}</span>
-                                                <div className="text-xs text-ink-faint mt-1">{word.romaji}</div>
+                                                <div className="text-xs text-ink-muted mt-1">{word.romaji}</div>
                                              </div>
                                              <div role="cell" className="px-6 py-4 flex items-center">
                                                 <span className="text-ink font-medium">{word.meaning}</span>
@@ -738,7 +738,7 @@ export function DeckDetail() {
                   <h3 className="text-xl font-bold text-destructive-strong mb-2 flex items-center gap-2">
                      <Trash2 className="w-5 h-5" /> Danger Zone
                   </h3>
-                  <p className="text-destructive-hover/80">Once you delete a deck, there is no going back. All learning progress and words associated with this deck will be permanently lost.</p>
+                  <p className="text-destructive-hover">Once you delete a deck, there is no going back. All learning progress and words associated with this deck will be permanently lost.</p>
                </div>
                <button
                   onClick={handleDeleteDeck}
@@ -764,7 +764,7 @@ export function DeckDetail() {
                      <p className="text-ink-muted mb-6">This exact card is already in the deck and won't be added again.</p>
                      <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-6 space-y-1">
                         <p className="text-2xl font-black text-ink">{duplicateWarning.exactMatches[0].kanji}</p>
-                        <p className="text-ink-muted font-medium">{duplicateWarning.exactMatches[0].kana} · <span className="text-xs text-ink-faint">{duplicateWarning.exactMatches[0].romaji}</span></p>
+                        <p className="text-ink-muted font-medium">{duplicateWarning.exactMatches[0].kana} · <span className="text-xs text-ink-muted">{duplicateWarning.exactMatches[0].romaji}</span></p>
                         <p className="text-ink">{duplicateWarning.exactMatches[0].meaning}</p>
                      </div>
                      <button
@@ -784,15 +784,15 @@ export function DeckDetail() {
                      </div>
                      <p className="text-ink-muted mb-4">A card with the same kanji and kana already exists but with a different meaning:</p>
                      <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-2 space-y-1">
-                        <p className="text-xs font-bold text-ink-faint uppercase tracking-wider mb-2">Existing card</p>
+                        <p className="text-xs font-bold text-ink-muted uppercase tracking-wider mb-2">Existing card</p>
                         <p className="text-2xl font-black text-ink">{duplicateWarning.similarMatches[0].kanji}</p>
-                        <p className="text-ink-muted font-medium">{duplicateWarning.similarMatches[0].kana} · <span className="text-xs text-ink-faint">{duplicateWarning.similarMatches[0].romaji}</span></p>
+                        <p className="text-ink-muted font-medium">{duplicateWarning.similarMatches[0].kana} · <span className="text-xs text-ink-muted">{duplicateWarning.similarMatches[0].romaji}</span></p>
                         <p className="text-ink">{duplicateWarning.similarMatches[0].meaning}</p>
                      </div>
                      <div className="bg-brand/5 rounded-2xl border border-brand/20 p-4 mb-6 space-y-1">
                         <p className="text-xs font-bold text-brand uppercase tracking-wider mb-2">New card</p>
                         <p className="text-2xl font-black text-ink">{duplicateWarning.newCard.kanji}</p>
-                        <p className="text-ink-muted font-medium">{duplicateWarning.newCard.kana} · <span className="text-xs text-ink-faint">{duplicateWarning.newCard.romaji}</span></p>
+                        <p className="text-ink-muted font-medium">{duplicateWarning.newCard.kana} · <span className="text-xs text-ink-muted">{duplicateWarning.newCard.romaji}</span></p>
                         <p className="text-ink">{duplicateWarning.newCard.meaning}</p>
                      </div>
                      <div className="flex gap-3">
@@ -826,7 +826,7 @@ export function DeckDetail() {
               </div>
               <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-6 space-y-1">
                  <p className="text-2xl font-black text-ink">{deleteConfirm.kanji}</p>
-                 <p className="text-ink-muted font-medium">{deleteConfirm.kana} · <span className="text-xs text-ink-faint">{deleteConfirm.romaji}</span></p>
+                 <p className="text-ink-muted font-medium">{deleteConfirm.kana} · <span className="text-xs text-ink-muted">{deleteConfirm.romaji}</span></p>
                  <p className="text-ink">{deleteConfirm.meaning}</p>
               </div>
               <div className="flex gap-3">
