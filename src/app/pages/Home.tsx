@@ -254,7 +254,7 @@ export function Home() {
    const { totalDue, deckDueCounts } = getDueSummary(decks);
 
    return (
-   <div className="space-y-5 font-sans max-w-5xl mx-auto w-full">
+   <div className="space-y-7 font-sans max-w-5xl mx-auto w-full">
       {/* Header */}
       <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -263,7 +263,7 @@ export function Home() {
       >
       <div>
          <h1 className="text-2xl font-extrabold text-ink tracking-tight">おかえり！ Welcome back</h1>
-         <p className="text-ink-muted mt-0.5 text-sm">
+         <p className="text-ink-muted mt-1 text-sm">
             {remainingCards > 0
                ? `Study ${remainingCards} more cards to hit today's goal.`
                : "Daily goal complete. You can still practice more if you want."}
@@ -272,14 +272,14 @@ export function Home() {
       </motion.div>
 
       {/* Today's Progress */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Streak Card */}
           <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="bg-surface rounded-2xl p-4 shadow-sm border border-border-hiyori flex flex-col justify-between relative overflow-hidden group"
+          className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col justify-between relative overflow-hidden group"
          >
          <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-brand/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
-         <div className="flex items-center justify-between mb-2">
+         <div className="flex items-center justify-between mb-3">
             <h2 className="text-ink-muted text-sm font-medium flex items-center gap-1.5">
                <Flame className="w-4 h-4 text-brand fill-brand" /> Day Streak
             </h2>
@@ -289,13 +289,13 @@ export function Home() {
                </div>
                )}
             </div>
-            <div className="flex items-end gap-1.5">
+            <div className="flex items-end gap-2">
                <span className="text-3xl font-black text-ink">{currentStreak}</span>
                <span className="text-ink-muted mb-0.5 text-sm font-medium">days</span>
             </div>
 
             {/* Week days tracker */}
-            <div className="flex justify-between items-end mt-3 flex-wrap gap-y-1.5">
+            <div className="flex justify-between items-end mt-4 flex-wrap gap-y-1.5">
                {weekDays.map((day, i) => (
                   <div key={i} className="flex flex-col items-center gap-1">
                      <div
@@ -322,10 +322,10 @@ export function Home() {
       {/* Cards Due Card */}
       <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-      className="bg-surface rounded-2xl p-4 shadow-sm border border-border-hiyori flex flex-col justify-between relative overflow-hidden group"
+      className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col justify-between relative overflow-hidden group"
       >
       <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-success/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
          <h2 className="text-ink-muted text-sm font-medium flex items-center gap-1.5">
             <Clock3 className="w-4 h-4 text-success" /> Cards Due
          </h2>
@@ -335,18 +335,18 @@ export function Home() {
             </div>
          )}
       </div>
-      <div className="flex items-end gap-1.5">
+      <div className="flex items-end gap-2">
          <span className="text-3xl font-black text-ink">{totalDue}</span>
          <span className="text-ink-muted mb-0.5 text-sm font-medium">{totalDue === 1 ? "card" : "cards"}</span>
       </div>
 
       {deckDueCounts.length > 0 ? (
-         <div className="flex flex-col gap-1 mt-3">
+         <div className="flex flex-col gap-1.5 mt-4">
             {deckDueCounts.slice(0, 3).map(({ deck, dueCount }) => (
                <Link
                   key={deck.id}
                   to={`/decks/${deck.id}/study`}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-page hover:bg-surface-hover transition-colors text-sm"
+                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-page hover:bg-surface-hover transition-colors text-sm"
                >
                   <span className="font-medium text-ink truncate">{deck.title}</span>
                   <span className="text-ink-muted font-bold shrink-0 ml-2">{dueCount}</span>
@@ -354,7 +354,7 @@ export function Home() {
             ))}
          </div>
       ) : (
-         <p className="text-ink-muted text-sm mt-3">Nothing due right now. Nice work!</p>
+         <p className="text-ink-muted text-sm mt-4">Nothing due right now. Nice work!</p>
       )}
       </motion.div>
    </div>
@@ -363,9 +363,9 @@ export function Home() {
    {activeRoutine && (
       <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-      className="bg-surface rounded-2xl p-4 shadow-sm border border-border-hiyori flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+      className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-4 min-w-0">
          <div className="w-9 h-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
             <Repeat className="w-4 h-4" />
          </div>
@@ -380,11 +380,11 @@ export function Home() {
          </div>
       </div>
       {activeRoutine.steps.length === 0 ? (
-         <Link to="/routines" className="bg-page hover:bg-surface-hover text-ink px-4 py-2 text-sm rounded-lg font-medium transition-colors inline-flex items-center gap-2 shadow-sm border border-border-hiyori shrink-0">
+         <Link to="/routines" className="bg-page hover:bg-surface-hover text-ink px-5 py-2.5 text-sm rounded-lg font-medium transition-colors inline-flex items-center gap-2 shadow-sm border border-border-hiyori shrink-0">
             Add Steps
          </Link>
       ) : (
-         <button onClick={() => startRoutineRun(activeRoutine, navigate)} className="bg-brand hover:bg-brand-hover text-white px-4 py-2 text-sm rounded-lg font-medium transition-colors inline-flex items-center gap-2 shadow-sm shadow-brand/20 shrink-0">
+         <button onClick={() => startRoutineRun(activeRoutine, navigate)} className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 text-sm rounded-lg font-medium transition-colors inline-flex items-center gap-2 shadow-sm shadow-brand/20 shrink-0">
             Start <Play className="w-3.5 h-3.5 fill-current" />
          </button>
       )}
@@ -392,15 +392,15 @@ export function Home() {
    )}
 
    {/* Daily Practice */}
-   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Daily Study CTA */}
       <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }}
       >
-      <div className="h-full bg-surface border border-border-hiyori rounded-2xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      <div className="h-full bg-surface border border-border-hiyori rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
          <div className="absolute right-0 top-0 w-20 h-20 bg-linear-to-bl from-success/10 to-transparent rounded-bl-full -z-10" />
          <div>
-            <div className="flex items-start justify-between mb-2">
+            <div className="flex items-start justify-between mb-3">
                <div className="w-9 h-9 bg-success/10 text-success rounded-xl flex items-center justify-center">
                   <Layers className="w-4 h-4" />
                </div>
@@ -408,14 +408,14 @@ export function Home() {
                   {dailyGoal.current} / {dailyGoal.total} today
                </span>
             </div>
-            <h2 className="text-base font-bold text-ink mb-0.5">Daily Study</h2>
+            <h2 className="text-base font-bold text-ink mb-1">Daily Study</h2>
             <p className="text-ink-muted text-xs">
                {remainingCards > 0
                   ? `${remainingCards} more cards to hit today's goal.`
                   : "You reached today's card goal - keep going anytime."}
             </p>
          </div>
-         <Link to={continueStudyPath} className="mt-3 bg-success hover:bg-success-hover text-white w-full py-2 text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-success/20">
+         <Link to={continueStudyPath} className="mt-4 bg-success hover:bg-success-hover text-white w-full py-2 text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-success/20">
             {studyButtonLabel} <Play className="w-3.5 h-3.5 fill-current" />
          </Link>
       </div>
@@ -425,10 +425,10 @@ export function Home() {
       <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
       >
-      <div className="h-full bg-surface border border-border-hiyori rounded-2xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-between">
+      <div className="h-full bg-surface border border-border-hiyori rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
          <div className="absolute right-0 top-0 w-20 h-20 bg-linear-to-bl from-deck-sky/10 to-transparent rounded-bl-full -z-10" />
          <div>
-            <div className="flex items-start justify-between mb-2">
+            <div className="flex items-start justify-between mb-3">
                <div className="w-9 h-9 bg-deck-sky-surface text-brand rounded-xl flex items-center justify-center">
                   <PenTool className="w-4 h-4" />
                </div>
@@ -436,10 +436,10 @@ export function Home() {
                   <CalendarDays className="w-3 h-3" /> Today
                </span>
             </div>
-            <h2 className="text-base font-bold text-ink mb-0.5">Daily Journal</h2>
+            <h2 className="text-base font-bold text-ink mb-1">Daily Journal</h2>
             <p className="text-ink-muted text-xs">Write a short entry in Japanese. We'll highlight words you're learning!</p>
          </div>
-         <Link to="/journal" className="mt-3 bg-brand hover:bg-brand-hover text-white w-full py-2 text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-brand/20">
+         <Link to="/journal" className="mt-4 bg-brand hover:bg-brand-hover text-white w-full py-2 text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-brand/20">
             Write Entry
          </Link>
       </div>
@@ -447,22 +447,22 @@ export function Home() {
    </div>
 
    {/* More Ways to Practice */}
-   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Learn Kana Link */}
       <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }}
       >
-      <Link to="/kana" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+      <Link to="/kana" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
          <div className="absolute -right-4 -bottom-4 text-7xl text-surface-hover opacity-50 font-black tracking-tighter group-hover:scale-110 transition-transform select-none">あ</div>
          <div className="flex items-start justify-between relative z-10">
-            <div className="w-9 h-9 bg-deck-cream text-brand rounded-xl flex items-center justify-center mb-2">
+            <div className="w-9 h-9 bg-deck-cream text-brand rounded-xl flex items-center justify-center mb-3">
                <Book className="w-4 h-4" />
             </div>
             <div className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
                <ChevronRight className="w-4 h-4" />
             </div>
          </div>
-         <h2 className="text-base font-bold text-ink mb-0.5 relative z-10">Learn Kana</h2>
+         <h2 className="text-base font-bold text-ink mb-1 relative z-10">Learn Kana</h2>
          <p className="text-ink-muted text-xs relative z-10">Master Hiragana and Katakana with our interactive typing practice.</p>
       </Link>
    </motion.div>
@@ -471,16 +471,16 @@ export function Home() {
       <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
       >
-      <Link to="/study" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+      <Link to="/study" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
          <div className="flex items-start justify-between relative z-10">
-            <div className="w-9 h-9 bg-deck-mist text-brand rounded-xl flex items-center justify-center mb-2">
+            <div className="w-9 h-9 bg-deck-mist text-brand rounded-xl flex items-center justify-center mb-3">
                <Layers className="w-4 h-4" />
             </div>
             <div className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
                <ChevronRight className="w-4 h-4" />
             </div>
          </div>
-         <h2 className="text-base font-bold text-ink mb-0.5 relative z-10">Custom Study</h2>
+         <h2 className="text-base font-bold text-ink mb-1 relative z-10">Custom Study</h2>
          <p className="text-ink-muted text-xs relative z-10">Pick decks and a word count to build your own study session.</p>
       </Link>
    </motion.div>
@@ -489,16 +489,16 @@ export function Home() {
    <motion.div
    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.45 }}
    >
-   <Link to="/test" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+   <Link to="/test" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
       <div className="flex items-start justify-between relative z-10">
-         <div className="w-9 h-9 bg-deck-rose text-brand rounded-xl flex items-center justify-center mb-2">
+         <div className="w-9 h-9 bg-deck-rose text-brand rounded-xl flex items-center justify-center mb-3">
             <ClipboardCheck className="w-4 h-4" />
          </div>
          <div className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
             <ChevronRight className="w-4 h-4" />
          </div>
       </div>
-      <h2 className="text-base font-bold text-ink mb-0.5 relative z-10">Test Yourself</h2>
+      <h2 className="text-base font-bold text-ink mb-1 relative z-10">Test Yourself</h2>
       <p className="text-ink-muted text-xs relative z-10">Check your retention on any deck without touching its study schedule.</p>
    </Link>
 </motion.div>
@@ -508,17 +508,17 @@ export function Home() {
 <motion.div
 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
 >
-<div className="flex items-center justify-between mb-3">
+<div className="flex items-center justify-between mb-4">
    <h2 className="text-lg font-bold text-ink">Recent Decks</h2>
    <Link to="/decks" className="text-brand text-sm font-medium hover:underline flex items-center gap-1">
       View all <ChevronRight className="w-3.5 h-3.5" />
    </Link>
 </div>
 
-<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
    {recentDecks.map(({ deck, color, colorTint, lastStudied }) => (
-   <Link to={`/decks/${deck.id}`} key={deck.id} className="bg-surface rounded-2xl p-4 border border-border-hiyori shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col">
-      <div className="flex justify-between items-start mb-3">
+   <Link to={`/decks/${deck.id}`} key={deck.id} className="bg-surface rounded-2xl p-5 border border-border-hiyori shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col">
+      <div className="flex justify-between items-start mb-4">
          <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", colorTint)}>
             <Book className={cn("w-4 h-4", color.replace('bg-', 'text-'))} />
          </div>
@@ -528,7 +528,7 @@ initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ del
       </div>
 
       <div className="flex-1">
-         <h3 className="font-bold text-sm text-ink mb-0.5 group-hover:text-brand transition-colors">{deck.title}</h3>
+         <h3 className="font-bold text-sm text-ink mb-1 group-hover:text-brand transition-colors">{deck.title}</h3>
          <p className="text-ink-muted text-xs">{deck.cards.length} cards • {lastStudied}</p>
       </div>
 
@@ -537,7 +537,7 @@ initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ del
 </div>
 
 {recentDecks.length === 0 && (
-   <div className="bg-surface rounded-2xl p-6 border border-border-hiyori shadow-sm text-center">
+   <div className="bg-surface rounded-2xl p-7 border border-border-hiyori shadow-sm text-center">
       <h3 className="font-bold text-lg text-ink">No decks yet</h3>
       <p className="text-ink-muted text-sm mt-2">Create a deck to start filling your dashboard with study data.</p>
       <Link to="/decks" className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-colors">
