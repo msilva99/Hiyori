@@ -40,18 +40,18 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   --ink: #3E362E;
-  --ink-muted: #726A60;
+  --ink-muted: #8C8276;
   --ink-faint: #C4BCB3;
   --page: #FDFBF7;
   --surface: #FFFFFF;
   --surface-hover: #F5F1EB;
   --border-hiyori: #EBE6DD;
-  --brand: #AC451A;
-  --brand-hover: #8D3916;
+  --brand: #E88D67;
+  --brand-hover: #D57B56;
   --brand-surface: #FFF4ED;
-  --success: #636E32;
-  --success-hover: #515A29;
-  --destructive-hover: #D82323;
+  --success: #8B9A46;
+  --success-hover: #7A883A;
+  --destructive-hover: #DC2626;
   --destructive-strong: #991B1B;
   --destructive-surface: #FEF2F2;
   --destructive-surface-hover: #FEE2E2;
@@ -126,6 +126,19 @@
   --deck-mist: #4E4A44;
   --deck-sky-surface: #2A3E4E;
   --card-hover: #2E2B28;
+}
+
+/* High Contrast: the light theme's base (page/surface/ink/borders unchanged), with
+   just the colors that carry real text/button meaning darkened enough to clear
+   WCAG AA (4.5:1), including against their own /10 tint chip backgrounds. Verified
+   with axe-core - see git history around the theme.css contrast work for the math. */
+.high-contrast {
+  --ink-muted: #726A60;
+  --brand: #AC451A;
+  --brand-hover: #8D3916;
+  --success: #636E32;
+  --success-hover: #515A29;
+  --destructive-hover: #D82323;
 }
 
 @theme inline {
