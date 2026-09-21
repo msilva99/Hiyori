@@ -10,7 +10,9 @@ import {
    CalendarDays,
    Sparkles,
    TrendingUp,
-   Repeat
+   Repeat,
+   Layers,
+   ClipboardCheck
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useDecksStore } from "../store/decksStore";
@@ -337,10 +339,46 @@ export function Home() {
    )}
 
    {/* Main Actions Row */}
-   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Learn Kana Link */}
-      <motion.div 
+   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Custom Study Link */}
+      <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+      >
+      <Link to="/study" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-[28px] p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+         <div className="flex items-start justify-between relative z-10">
+            <div className="w-12 h-12 bg-deck-mist text-brand rounded-2xl flex items-center justify-center mb-4">
+               <Layers className="w-6 h-6" />
+            </div>
+            <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
+               <ChevronRight className="w-5 h-5" />
+            </div>
+         </div>
+         <h3 className="text-xl font-bold text-ink mb-2 relative z-10">Custom Study</h3>
+         <p className="text-ink-muted text-sm relative z-10">Pick decks and a word count to build your own study session.</p>
+      </Link>
+   </motion.div>
+
+   {/* Test Mode Link */}
+   <motion.div
+   initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }}
+   >
+   <Link to="/test" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-[28px] p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+      <div className="flex items-start justify-between relative z-10">
+         <div className="w-12 h-12 bg-deck-rose text-brand rounded-2xl flex items-center justify-center mb-4">
+            <ClipboardCheck className="w-6 h-6" />
+         </div>
+         <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
+            <ChevronRight className="w-5 h-5" />
+         </div>
+      </div>
+      <h3 className="text-xl font-bold text-ink mb-2 relative z-10">Test Yourself</h3>
+      <p className="text-ink-muted text-sm relative z-10">Check your retention on any deck without touching its study schedule.</p>
+   </Link>
+</motion.div>
+
+      {/* Learn Kana Link */}
+      <motion.div
+      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
       >
       <Link to="/kana" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-[28px] p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
          <div className="absolute -right-6 -bottom-6 text-9xl text-surface-hover opacity-50 font-black tracking-tighter group-hover:scale-110 transition-transform select-none">あ</div>
@@ -356,10 +394,10 @@ export function Home() {
          <p className="text-ink-muted text-sm relative z-10">Master Hiragana and Katakana with our interactive typing practice.</p>
       </Link>
    </motion.div>
-   
+
    {/* Journal CTA */}
-   <motion.div 
-   initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
+   <motion.div
+   initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.45 }}
    >
    <div className="h-full bg-surface border border-border-hiyori rounded-[28px] p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
       <div className="absolute right-0 top-0 w-32 h-32 bg-linear-to-bl from-deck-sky/10 to-transparent rounded-bl-full -z-10" />
