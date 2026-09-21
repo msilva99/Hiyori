@@ -1,0 +1,10 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "demo": true,
+      "master": false,
+      "AI-Tutor": false,
+      "Decks-Library": false
+    }
+  }
+}
