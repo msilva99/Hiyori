@@ -32,8 +32,24 @@ const deckColorClasses = [
    "bg-deck-mist",
 ];
 
+// Written out as literal classes (not built with a template string) so Tailwind's
+// scanner can actually see and generate them - `${color}/20` at runtime doesn't work,
+// since nothing in the source text spells out e.g. "bg-deck-pine/20" for it to find.
+const deckColorTintClasses = [
+   "bg-deck-pine/20",
+   "bg-deck-sand/20",
+   "bg-deck-sky/20",
+   "bg-deck-rose/20",
+   "bg-deck-cream/20",
+   "bg-deck-mist/20",
+];
+
 function getDeckColor(index: number) {
    return deckColorClasses[index % deckColorClasses.length];
+}
+
+function getDeckColorTint(index: number) {
+   return deckColorTintClasses[index % deckColorTintClasses.length];
 }
 
 function getDeckMastery(deck: { masteryPerfectSessions: number }) {
@@ -55,6 +71,7 @@ export function DeckDetail() {
    const deckIndex = decks.findIndex((item) => item.id === id);
    const deck = deckIndex >= 0 ? decks[deckIndex] : undefined;
    const deckColor = getDeckColor(Math.max(deckIndex, 0));
+   const deckColorTint = getDeckColorTint(Math.max(deckIndex, 0));
    const words = deck?.cards ?? [];
    const totalCards = words.length;
    const progress = deck ? getDeckMastery(deck) : 0;
@@ -349,7 +366,7 @@ export function DeckDetail() {
                <div className="absolute right-0 top-0 w-64 h-64 bg-linear-to-bl from-border-hiyori/30 to-transparent rounded-bl-full -z-10" />
                
                <div className="flex items-center gap-6 z-10">
-                  <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 shadow-sm", deckColor, "bg-opacity-20")}>
+                  <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 shadow-sm", deckColorTint)}>
                      <Book className={cn("w-10 h-10", deckColor.replace("bg-", "text-"))} />
                   </div>
                   <div>

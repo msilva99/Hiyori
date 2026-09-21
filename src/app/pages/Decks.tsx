@@ -29,8 +29,24 @@ const deckColorClasses = [
    "bg-deck-mist",
 ];
 
+// Written out as literal classes (not built with a template string) so Tailwind's
+// scanner can actually see and generate them - `${color}/20` at runtime doesn't work,
+// since nothing in the source text spells out e.g. "bg-deck-pine/20" for it to find.
+const deckColorTintClasses = [
+   "bg-deck-pine/20",
+   "bg-deck-sand/20",
+   "bg-deck-sky/20",
+   "bg-deck-rose/20",
+   "bg-deck-cream/20",
+   "bg-deck-mist/20",
+];
+
 function getDeckColor(index: number) {
    return deckColorClasses[index % deckColorClasses.length];
+}
+
+function getDeckColorTint(index: number) {
+   return deckColorTintClasses[index % deckColorTintClasses.length];
 }
 
 function getDeckMastery(deck: { masteryPerfectSessions: number }) {
@@ -293,6 +309,7 @@ export function Decks() {
                const dueCards = deck.cards.filter((card) => isCardDue(card)).length;
                const progress = getDeckMastery(deck);
                const color = getDeckColor(i);
+               const colorTint = getDeckColorTint(i);
 
                return (
                   <motion.div 
@@ -352,7 +369,7 @@ export function Decks() {
                      </div>
 
                      <div className="flex items-start gap-4 mb-6">
-                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0", color, "bg-opacity-20")}>
+                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0", colorTint)}>
                            <Book className={cn("w-7 h-7", color.replace("bg-", "text-"))} />
                         </div>
                         <div className="pt-1">
