@@ -32,53 +32,6 @@ import {
 import { format, subDays, addDays, isToday, parseISO } from "date-fns";
 import { cn } from "../../lib/utils";
 
-// Mock known words from decks to highlight. Later this should come from real deck storage.
-// const deckWords = ['私', '猫', '食べる', 'ありがとう', 'おはよう', '今日', '美味しい', 'watashi', 'neko', 'taberu'];
-
-
-// const today = new Date();
-// const nowIso = new Date().toISOString();
-
-// const mockEntries: JournalEntry[] = [
-// {
-//    id: "1",
-//    date: format(today, "yyyy-MM-dd"), // Today
-//    title: "A good morning!",
-//    body: "今日 はとてもいい天気でした。朝ご飯に美味しいパンを食べる。\n\nThen I went for a walk and saw a 猫. It was very cute. 私 はとても嬉しかったです。ありがとう for the good day.",
-//    slots: [
-//    { id: "s1", icon: "Sun", text: "Sunny" },
-//    { id: "s2", icon: "Smile", text: "Happy" },
-//    { id: "s3", icon: "Coffee", text: "Matcha Latte" },
-//    ],
-//    createdAt: nowIso,
-//    updatedAt: nowIso,
-// },
-// {
-//    id: "2",
-//    date: format(subDays(today, 1), "yyyy-MM-dd"), // Yesterday
-//    title: "Tired day",
-//    body: "昨日はとても疲れました。でも、新しい単語をたくさん勉強しました。",
-//    slots: [
-//    { id: "s1", icon: "CloudRain", text: "Rainy" },
-//    { id: "s2", icon: "Frown", text: "Tired" },
-//    ],
-//    createdAt: nowIso,
-//    updatedAt: nowIso,
-// },
-// {
-//    id: "3",
-//    date: format(subDays(today, 3), "yyyy-MM-dd"), // 3 Days Ago
-//    title: "Sakura blossoms",
-//    body: "公園で桜を見ました。とても綺麗でした。watashi likes spring and hot tea.",
-//    slots: [
-//    { id: "s1", icon: "Sun", text: "Warm" },
-//    { id: "s2", icon: "Heart", text: "Lovely" },
-//    ],
-//    createdAt: nowIso,
-//    updatedAt: nowIso,
-// }
-// ];
-
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: i, label: format(new Date(2000, i, 1), "MMMM") }));
 
 const availableIcons = {

@@ -10,11 +10,8 @@ import { Test } from "./pages/Test";
 import { Routines } from "./pages/Routines";
 import { KanaPractice } from "./pages/KanaPractice";
 import { Journal } from "./pages/Journal";
-import { Dictionary } from "./pages/Dictionary";
 import { Settings } from "./pages/Settings";
-
-// tmp playground
-import { DecksStorePlayground } from "./pages/DecksStorePlayground";
+import { About } from "./pages/About";
 
 export const router = createBrowserRouter([
    {
@@ -32,14 +29,11 @@ export const router = createBrowserRouter([
          { path: "routines", Component: Routines },
          { path: "kana", Component: KanaPractice },
          { path: "journal", Component: Journal },
-         { path: "dictionary", Component: Dictionary },
          { path: "settings", Component: Settings },
+         { path: "about", Component: About },
          // These future pages are intentionally placeholders and are disabled in the sidebar.
          { path: "insights", Component: () => <div className="p-8"><h1 className="text-2xl font-bold text-ink">Insights</h1><p className="mt-4 text-ink-muted">Coming soon!</p></div> },
          { path: "ai-tutor", Component: () => <div className="p-8"><h1 className="text-2xl font-bold text-ink">AI Tutor</h1><p className="mt-4 text-ink-muted">Coming soon!</p></div> },
-
-         // tmp playground
-         { path: "store-playground", Component: DecksStorePlayground },
       ],
    },
 ]);
