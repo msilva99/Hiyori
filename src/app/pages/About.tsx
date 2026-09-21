@@ -1,11 +1,12 @@
 import { motion } from "motion/react";
-import { Heart, FolderGit2, Briefcase, Mail, DownloadCloud, ExternalLink } from "lucide-react";
+import { Heart, Globe, FolderGit2, Briefcase, Mail, DownloadCloud, ExternalLink } from "lucide-react";
 import iconT from "../../media/icon-t.png";
 
 // Bump alongside package.json's "version" (scripts/bump-version.mjs doesn't touch this yet).
 const APP_VERSION = "1.0.2";
 
 const links = [
+   { label: "Website", href: "https://msilva.dev", icon: Globe, description: "Maria Silva's portfolio" },
    { label: "GitHub", href: "https://github.com/msilva99/Hiyori", icon: FolderGit2, description: "Source code, issues, and releases." },
    { label: "LinkedIn", href: "https://linkedin.com/in/mariamfsilva", icon: Briefcase, description: "Maria Silva" },
    { label: "Email", href: "mailto:mariamfsilva.dev@gmail.com", icon: Mail, description: "mariamfsilva.dev@gmail.com" },
