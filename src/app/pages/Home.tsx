@@ -250,12 +250,12 @@ export function Home() {
                      day.studied ? "bg-brand text-white shadow-sm shadow-brand/30" : "bg-surface-hover text-ink-faint"
                      )}
                      >
-                     {day.studied && !day.isToday && <Sparkles className="w-3 h-3 absolute" />}
+                     {day.studied && !day.isToday && <Sparkles className="w-3 h-3" />}
                      {day.isToday && !day.studied ? <span className="w-2 h-2 rounded-full bg-surface opacity-50 block" /> : null}
                   </div>
                   <span className={cn(
-                  "text-xs font-bold", 
-                  day.isToday ? "text-brand" : "text-ink-faint"
+                  "text-xs font-bold",
+                  day.isToday ? "text-brand" : "text-ink-muted"
                   )}>
                   {day.day}
                </span>
