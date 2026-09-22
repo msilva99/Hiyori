@@ -2,25 +2,28 @@ import { Link, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import {
    Flame,
-   Target,
    Book,
    ChevronRight,
    PenTool,
    Play,
-   CalendarDays,
    Sparkles,
    TrendingUp,
    Repeat,
    Layers,
-   ClipboardCheck
+   ClipboardCheck,
+   Trophy,
+   CheckCircle2,
+   Check,
+   X
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useDecksStore } from "../store/decksStore";
 import { useStudyLogStore } from "../store/studyLogStore";
+import { useJournalStore } from "../store/journalStore";
 import { useRoutinesStore } from "../store/routinesStore";
 import { startRoutineRun } from "../store/routineRunStore";
 import { getStepSummary } from "../data/routines";
-import type { Deck, StudyLogEntry } from "../data/types";
+import type { Deck, JournalEntry, StudyLogEntry } from "../data/types";
 
 const DAILY_GOAL_CARDS = 10;
 
@@ -33,15 +36,46 @@ const deckColorClasses = [
 "bg-deck-mist",
 ];
 
+// Written out as literal classes (not built with a template string) so Tailwind's
+// scanner can actually see and generate them - `${color}/20` at runtime doesn't work,
+// since nothing in the source text spells out e.g. "bg-deck-pine/20" for it to find.
+const deckColorTintClasses = [
+"bg-deck-pine/20",
+"bg-deck-sand/20",
+"bg-deck-sky/20",
+"bg-deck-rose/20",
+"bg-deck-cream/20",
+"bg-deck-mist/20",
+];
+
+// Same reasoning as the tint array above - `color.replace('bg-', 'text-')` at
+// runtime never spells out "text-deck-pine" in source text for Tailwind to find.
+const deckIconColorClasses = [
+"text-deck-pine",
+"text-deck-sand",
+"text-deck-sky",
+"text-deck-rose",
+"text-deck-cream",
+"text-deck-mist",
+];
+
 function getDeckColor(index: number) {
    return deckColorClasses[index % deckColorClasses.length];
+}
+
+function getDeckColorTint(index: number) {
+   return deckColorTintClasses[index % deckColorTintClasses.length];
+}
+
+function getDeckIconColor(index: number) {
+   return deckIconColorClasses[index % deckIconColorClasses.length];
 }
 
 function getLocalDateKey(date: Date) {
    const year = date.getFullYear();
    const month = `${date.getMonth() + 1}`.padStart(2, "0");
    const day = `${date.getDate()}`.padStart(2, "0");
-   
+
    return `${year}-${month}-${day}`;
 }
 
@@ -50,7 +84,7 @@ function getStartOfWeek(date: Date) {
    const mondayBasedDay = (date.getDay() + 6) % 7;
    startOfWeek.setDate(date.getDate() - mondayBasedDay);
    startOfWeek.setHours(0, 0, 0, 0);
-   
+
    return startOfWeek;
 }
 
@@ -58,43 +92,85 @@ function getStudyCardsByDate(studyLog: StudyLogEntry[]) {
    return studyLog.reduce<Record<string, number>>((cardsByDate, entry) => {
       const dateKey = getLocalDateKey(new Date(entry.studiedAt));
       cardsByDate[dateKey] = (cardsByDate[dateKey] ?? 0) + entry.cardsStudied;
-      
+
       return cardsByDate;
    }, {});
 }
 
-function getCurrentStreak(cardsByDate: Record<string, number>) {
+// The streak/week-tracker counts a day as "active" for studying OR journaling - not
+// just card review - so the habit loop isn't decks-only. Test mode can't be included
+// yet: it only keeps one in-progress session (overwritten by the next), with no
+// per-day history to query, unlike studyLogStore and journalStore's dated entries.
+function getActiveDateKeys(studyLog: StudyLogEntry[], journalEntries: JournalEntry[]) {
+   const activeDates = new Set<string>();
+
+   for (const entry of studyLog) {
+      if (entry.cardsStudied > 0) {
+         activeDates.add(getLocalDateKey(new Date(entry.studiedAt)));
+      }
+   }
+
+   for (const entry of journalEntries) {
+      activeDates.add(entry.date);
+   }
+
+   return activeDates;
+}
+
+function getCurrentStreak(activeDateKeys: Set<string>) {
    let streak = 0;
    const cursorDate = new Date();
-   const todayCardsStudied = cardsByDate[getLocalDateKey(cursorDate)] ?? 0;
-   
-   if (todayCardsStudied === 0) {
+   const isActiveToday = activeDateKeys.has(getLocalDateKey(cursorDate));
+
+   if (!isActiveToday) {
       cursorDate.setDate(cursorDate.getDate() - 1);
    }
-   
-   while ((cardsByDate[getLocalDateKey(cursorDate)] ?? 0) > 0) {
+
+   while (activeDateKeys.has(getLocalDateKey(cursorDate))) {
       streak += 1;
       cursorDate.setDate(cursorDate.getDate() - 1);
    }
-   
+
    return streak;
 }
 
-function getWeekDays(cardsByDate: Record<string, number>) {
+function getBestStreak(activeDateKeys: Set<string>) {
+   const sortedDateKeys = [...activeDateKeys].sort();
+   let bestStreak = 0;
+   let currentRun = 0;
+   let previousDate: Date | null = null;
+
+   for (const dateKey of sortedDateKeys) {
+      const date = new Date(dateKey);
+      const dayDifference = previousDate
+         ? Math.round((date.getTime() - previousDate.getTime()) / 86400000)
+         : 1;
+
+      currentRun = dayDifference === 1 ? currentRun + 1 : 1;
+      bestStreak = Math.max(bestStreak, currentRun);
+      previousDate = date;
+   }
+
+   return bestStreak;
+}
+
+function getWeekDays(activeDateKeys: Set<string>) {
    const todayKey = getLocalDateKey(new Date());
    const startOfWeek = getStartOfWeek(new Date());
    const labels = ["M", "T", "W", "T", "F", "S", "S"];
-   
+
    return labels.map((day, index) => {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + index);
       const dateKey = getLocalDateKey(date);
-      
+
       return {
          day,
          date: date.getDate(),
-         studied: (cardsByDate[dateKey] ?? 0) > 0,
+         studied: activeDateKeys.has(dateKey),
          isToday: dateKey === todayKey,
+         // A day later this week that hasn't happened yet - no verdict to show for it.
+         isFuture: dateKey > todayKey,
       };
    });
 }
@@ -111,21 +187,21 @@ function getLastStudiedLabel(lastStudiedAt: string | undefined) {
    if (!lastStudiedAt) {
       return "Not studied yet";
    }
-   
+
    const today = new Date();
    const studiedDate = new Date(lastStudiedAt);
    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
    const studiedStart = new Date(studiedDate.getFullYear(), studiedDate.getMonth(), studiedDate.getDate());
    const dayDifference = Math.round((todayStart.getTime() - studiedStart.getTime()) / 86400000);
-   
+
    if (dayDifference === 0) {
       return "Today";
    }
-   
+
    if (dayDifference === 1) {
       return "Yesterday";
    }
-   
+
    return `${dayDifference} days ago`;
 }
 
@@ -133,10 +209,12 @@ function getRecentDecks(decks: Deck[], studyLog: StudyLogEntry[]) {
    return decks
    .map((deck, index) => {
       const lastStudiedAt = getLastStudiedAt(deck.id, studyLog);
-      
+
       return {
          deck,
          color: getDeckColor(index),
+         colorTint: getDeckColorTint(index),
+         colorIcon: getDeckIconColor(index),
          lastStudiedAt,
          lastStudied: getLastStudiedLabel(lastStudiedAt),
       };
@@ -144,7 +222,7 @@ function getRecentDecks(decks: Deck[], studyLog: StudyLogEntry[]) {
    .sort((a, b) => {
       const aTime = new Date(a.lastStudiedAt ?? a.deck.updatedAt).getTime();
       const bTime = new Date(b.lastStudiedAt ?? b.deck.updatedAt).getTime();
-      
+
       return bTime - aTime;
    })
    .slice(0, 3);
@@ -161,15 +239,15 @@ function getLeastRecentlyStudiedDeck(decks: Deck[], studyLog: StudyLogEntry[]) {
       if (!a.lastStudiedAt && !b.lastStudiedAt) {
          return 0;
       }
-      
+
       if (!a.lastStudiedAt) {
          return -1;
       }
-      
+
       if (!b.lastStudiedAt) {
          return 1;
       }
-      
+
       return new Date(a.lastStudiedAt).getTime() - new Date(b.lastStudiedAt).getTime();
    })
    .at(0)?.deck;
@@ -179,83 +257,87 @@ export function Home() {
    const navigate = useNavigate();
    const decks = useDecksStore((state) => state.decks);
    const studyLog = useStudyLogStore((state) => state.studyLog);
+   const journalEntries = useJournalStore((state) => state.journalEntries);
    const routines = useRoutinesStore((state) => state.routines);
    const activeRoutineId = useRoutinesStore((state) => state.activeRoutineId);
    const activeRoutine = routines.find((routine) => routine.id === activeRoutineId) ?? null;
-   const cardsByDate = getStudyCardsByDate(studyLog);
-   const weekDays = getWeekDays(cardsByDate);
-   const currentStreak = getCurrentStreak(cardsByDate);
-   const studiedToday = cardsByDate[getLocalDateKey(new Date())] ?? 0;
+
+   const activeDateKeys = getActiveDateKeys(studyLog, journalEntries);
+   const weekDays = getWeekDays(activeDateKeys);
+   const currentStreak = getCurrentStreak(activeDateKeys);
+   const bestStreak = getBestStreak(activeDateKeys);
+
+   const studyCardsByDate = getStudyCardsByDate(studyLog);
+   const studiedToday = studyCardsByDate[getLocalDateKey(new Date())] ?? 0;
    const dailyGoal = { current: Math.min(studiedToday, DAILY_GOAL_CARDS), total: DAILY_GOAL_CARDS };
    const remainingCards = Math.max(dailyGoal.total - dailyGoal.current, 0);
    const nextStudyDeck = getLeastRecentlyStudiedDeck(decks, studyLog);
    const continueStudyPath = nextStudyDeck ? `/decks/${nextStudyDeck.id}/study` : "/decks";
    const studyButtonLabel = studiedToday === 0 ? "Start Study" : "Continue Study";
    const recentDecks = getRecentDecks(decks, studyLog);
-   
-   // SVG progress circles are controlled by strokeDashoffset: lower offset means more progress.
-   const progressPercentage = (dailyGoal.current / dailyGoal.total) * 100;
-   const circumference = 2 * Math.PI * 36;
-   const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
-   
+   const journaledToday = journalEntries.some((entry) => entry.date === getLocalDateKey(new Date()));
+
    return (
-   <div className="space-y-10 font-sans max-w-5xl mx-auto w-full">
+   <div className="space-y-7 font-sans max-w-3xl mx-auto w-full">
       {/* Header */}
-      <motion.div 
-      initial={{ opacity: 0, y: 10 }} 
+      <motion.div
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="flex items-end justify-between"
       >
       <div>
-         <h1 className="text-4xl font-extrabold text-ink tracking-tight">おかえり！ Welcome back</h1>
-         <p className="text-ink-muted mt-2 text-lg">
+         <h1 className="text-2xl font-extrabold text-ink tracking-tight">おかえり！ Welcome back</h1>
+         <p className="text-ink-muted mt-1 text-sm">
             {remainingCards > 0
                ? `Study ${remainingCards} more cards to hit today's goal.`
                : "Daily goal complete. You can still practice more if you want."}
             </p>
          </div>
       </motion.div>
-      
-      {/* Top Stats Row */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      {/* Today's Progress */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Streak Card */}
-          <motion.div 
+          <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="bg-surface rounded-[28px] p-6 shadow-sm border border-border-hiyori flex flex-col justify-between relative overflow-hidden group"
+          className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col relative overflow-hidden group"
          >
-         <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-brand/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
-         <div className="flex items-center justify-between mb-4">
-            <h2 className="text-ink-muted font-medium flex items-center gap-2">
-               <Flame className="w-5 h-5 text-brand fill-brand" /> Day Streak
+         <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-brand/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
+         <div className="flex items-center justify-between mb-3">
+            <h2 className="text-ink-muted text-sm font-medium flex items-center gap-1.5">
+               <Flame className="w-4 h-4 text-brand fill-brand" /> Day Streak
             </h2>
-            {studiedToday > 0 && (
-               <div className="bg-brand-surface text-brand text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+            {activeDateKeys.has(getLocalDateKey(new Date())) && (
+               <div className="bg-brand-surface text-brand text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> Active
                </div>
                )}
             </div>
             <div className="flex items-end gap-2">
-               <span className="text-5xl font-black text-ink">{currentStreak}</span>
-               <span className="text-ink-muted mb-1 font-medium">days</span>
+               <span className="text-3xl font-black text-ink">{currentStreak}</span>
+               <span className="text-ink-muted mb-0.5 text-sm font-medium">days</span>
             </div>
-            
+
             {/* Week days tracker */}
-            <div className="flex justify-between items-end mt-6 flex-wrap gap-y-3">
+            <div className="grid grid-cols-7 gap-1.5 mt-4">
                {weekDays.map((day, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2">
-                     <div 
+                  <div key={i} className="flex flex-col items-center gap-1">
+                     <div
                      className={cn(
-                     "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                     "w-6 h-6 rounded-full flex items-center justify-center transition-all",
                      day.isToday && "ring-2 ring-offset-2 ring-brand",
-                     day.studied ? "bg-brand text-white shadow-sm shadow-brand/30" : "bg-surface-hover text-ink-faint"
+                     day.studied ? "bg-brand text-white shadow-sm shadow-brand/30" : "bg-surface-hover text-ink-muted"
                      )}
                      >
-                     {day.studied && !day.isToday && <Sparkles className="w-3 h-3 absolute" />}
-                     {day.isToday && !day.studied ? <span className="w-2 h-2 rounded-full bg-surface opacity-50 block" /> : null}
+                     {day.studied ? (
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                     ) : !day.isToday && !day.isFuture ? (
+                        <X className="w-3 h-3" strokeWidth={3} />
+                     ) : null}
                   </div>
                   <span className={cn(
-                  "text-xs font-bold", 
-                  day.isToday ? "text-brand" : "text-ink-faint"
+                  "text-[11px] font-bold",
+                  day.isToday ? "text-brand" : "text-ink-muted"
                   )}>
                   {day.day}
                </span>
@@ -263,63 +345,60 @@ export function Home() {
             ))}
          </div>
       </motion.div>
-      
-      {/* Daily Goal Card */}
-      <motion.div 
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-      className="bg-surface rounded-[28px] p-6 shadow-sm border border-border-hiyori flex items-center gap-6 relative overflow-hidden"
+
+      {/* Best Streak Card */}
+      <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+      className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col relative overflow-hidden group"
       >
-      <div className="absolute right-0 bottom-0 w-48 h-48 bg-linear-to-tl from-success/10 to-transparent rounded-tl-full -z-10" />
-      <div className="relative shrink-0 w-28 h-28">
-         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="36" className="text-surface-hover stroke-current" strokeWidth="8" fill="transparent" />
-            <circle 
-            cx="40" cy="40" r="36" 
-            className="text-success stroke-current" 
-            strokeWidth="8" 
-            fill="transparent" 
-            strokeDasharray={circumference} 
-            strokeDashoffset={strokeDashoffset} 
-            strokeLinecap="round" 
-            />
-         </svg>
-         <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-black text-ink">{dailyGoal.current}</span>
-            <span className="text-xs text-ink-muted font-medium">/ {dailyGoal.total}</span>
-         </div>
-      </div>
-      
-      <div className="flex-1">
-         <h2 className="text-ink-muted font-medium flex items-center gap-2 mb-2">
-            <Target className="w-5 h-5 text-success" /> Daily Goal
+      <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-amber-400/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
+      <div className="flex items-center justify-between mb-3">
+         <h2 className="text-ink-muted text-sm font-medium flex items-center gap-1.5">
+            <Trophy className="w-4 h-4 text-amber-500 fill-amber-500" /> Best Streak
          </h2>
-         <h3 className="text-2xl font-bold text-ink mb-1">Study 10 Cards</h3>
-         <p className="text-ink-muted text-sm mb-6 max-w-xs">
-            {remainingCards > 0
-               ? `${remainingCards} cards left for today.`
-               : "You reached today's card goal."}
-            </p>
-            <Link to={continueStudyPath} className="bg-success hover:bg-success-hover text-white px-6 py-2.5 rounded-xl font-medium transition-colors inline-flex items-center gap-2 shadow-sm shadow-success/20">
-               {studyButtonLabel} <Play className="w-4 h-4 fill-current" />
-            </Link>
+         {bestStreak > 0 && currentStreak >= bestStreak && (
+            <div className="bg-amber-500/10 text-amber-600 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+               <Sparkles className="w-3 h-3" /> Personal best
+            </div>
+         )}
+      </div>
+      <div className="flex items-end gap-2">
+         <span className="text-3xl font-black text-ink">{bestStreak}</span>
+         <span className="text-ink-muted mb-0.5 text-sm font-medium">{bestStreak === 1 ? "day" : "days"}</span>
+      </div>
+
+      <div className="mt-4">
+         <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
+            <div
+               className="h-full bg-amber-400 rounded-full transition-all"
+               style={{ width: `${bestStreak === 0 ? 0 : Math.min((currentStreak / bestStreak) * 100, 100)}%` }}
+            />
          </div>
+         <p className="text-ink-muted text-xs mt-2">
+            {bestStreak === 0
+               ? "Study or journal today to start your first streak."
+               : currentStreak >= bestStreak
+               ? "You're on your best streak ever!"
+               : `${bestStreak - currentStreak} more ${bestStreak - currentStreak === 1 ? "day" : "days"} to match your record.`}
+         </p>
+      </div>
       </motion.div>
    </div>
 
    {/* Active Routine Card - additive only, never touches Daily Goal/streak logic above */}
    {activeRoutine && (
       <motion.div
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-      className="bg-surface rounded-[28px] p-6 shadow-sm border border-border-hiyori flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+      className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
       <div className="flex items-center gap-4 min-w-0">
-         <div className="w-12 h-12 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
-            <Repeat className="w-6 h-6" />
+         <div className="w-9 h-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+            <Repeat className="w-4 h-4" />
          </div>
          <div className="min-w-0">
-            <h2 className="text-ink-muted font-medium text-sm">Active Routine</h2>
-            <h3 className="text-xl font-bold text-ink truncate">{activeRoutine.name}</h3>
-            <p className="text-ink-muted text-sm mt-0.5">
+            <h2 className="text-ink-muted font-medium text-xs">Active Routine</h2>
+            <p className="text-base font-bold text-ink truncate">{activeRoutine.name}</p>
+            <p className="text-ink-muted text-xs mt-0.5">
                {activeRoutine.steps.length === 0
                   ? "Add steps to this routine to run it."
                   : activeRoutine.steps.map((step) => getStepSummary(step, decks)).join(" → ")}
@@ -327,125 +406,158 @@ export function Home() {
          </div>
       </div>
       {activeRoutine.steps.length === 0 ? (
-         <Link to="/routines" className="bg-page hover:bg-surface-hover text-ink px-6 py-2.5 rounded-xl font-medium transition-colors inline-flex items-center gap-2 shadow-sm border border-border-hiyori shrink-0">
+         <Link to="/routines" className="bg-page hover:bg-surface-hover text-ink px-5 py-2.5 text-sm rounded-lg font-medium transition-colors inline-flex items-center gap-2 shadow-sm border border-border-hiyori shrink-0">
             Add Steps
          </Link>
       ) : (
-         <button onClick={() => startRoutineRun(activeRoutine, navigate)} className="bg-brand hover:bg-brand-hover text-white px-6 py-2.5 rounded-xl font-medium transition-colors inline-flex items-center gap-2 shadow-sm shadow-brand/20 shrink-0">
-            Start <Play className="w-4 h-4 fill-current" />
+         <button onClick={() => startRoutineRun(activeRoutine, navigate)} className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 text-sm rounded-lg font-medium transition-colors inline-flex items-center gap-2 shadow-sm shadow-brand/20 shrink-0">
+            Start <Play className="w-3.5 h-3.5 fill-current" />
          </button>
       )}
       </motion.div>
    )}
 
-   {/* Main Actions Row */}
-   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {/* Custom Study Link */}
+   {/* Daily Practice */}
+   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Daily Study CTA */}
+      <motion.div
+      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }}
+      >
+      <div className="h-full bg-surface border border-border-hiyori rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+         <div className="absolute right-0 top-0 w-20 h-20 bg-linear-to-bl from-success/10 to-transparent rounded-bl-full -z-10" />
+         <div>
+            <div className="flex items-start justify-between mb-3">
+               <div className="w-9 h-9 bg-success/10 text-success rounded-xl flex items-center justify-center">
+                  <Layers className="w-4 h-4" />
+               </div>
+               <span className="bg-surface-hover text-ink-muted text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  {dailyGoal.current} / {dailyGoal.total} today
+               </span>
+            </div>
+            <h2 className="text-base font-bold text-ink mb-1">Daily Study</h2>
+            <p className="text-ink-muted text-xs">
+               {remainingCards > 0
+                  ? `${remainingCards} more cards to hit today's goal.`
+                  : "You reached today's card goal - keep going anytime."}
+            </p>
+         </div>
+         <Link to={continueStudyPath} className="mt-4 bg-success hover:bg-success-hover text-white w-full py-2 text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-success/20">
+            {studyButtonLabel} <Play className="w-3.5 h-3.5 fill-current" />
+         </Link>
+      </div>
+      </motion.div>
+
+      {/* Journal CTA */}
       <motion.div
       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
       >
-      <Link to="/study" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-[28px] p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
-         <div className="flex items-start justify-between relative z-10">
-            <div className="w-12 h-12 bg-deck-mist text-brand rounded-2xl flex items-center justify-center mb-4">
-               <Layers className="w-6 h-6" />
+      <div className="h-full bg-surface border border-border-hiyori rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+         <div className="absolute right-0 top-0 w-20 h-20 bg-linear-to-bl from-deck-sky/10 to-transparent rounded-bl-full -z-10" />
+         <div>
+            <div className="flex items-start justify-between mb-3">
+               <div className="w-9 h-9 bg-deck-sky-surface text-brand rounded-xl flex items-center justify-center">
+                  <PenTool className="w-4 h-4" />
+               </div>
+               {journaledToday && (
+                  <span className="bg-success/10 text-success text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                     <CheckCircle2 className="w-3 h-3" /> Written today
+                  </span>
+               )}
             </div>
-            <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
-               <ChevronRight className="w-5 h-5" />
+            <h2 className="text-base font-bold text-ink mb-1">Daily Journal</h2>
+            <p className="text-ink-muted text-xs">Write a short entry in Japanese. We'll highlight words you're learning!</p>
+         </div>
+         <Link to="/journal" className="mt-4 bg-brand hover:bg-brand-hover text-white w-full py-2 text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-brand/20">
+            {journaledToday ? "View Entry" : "Write Entry"}
+         </Link>
+      </div>
+      </motion.div>
+   </div>
+
+   {/* More Ways to Practice */}
+   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Learn Kana Link */}
+      <motion.div
+      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }}
+      >
+      <Link to="/kana" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+         <div className="absolute -right-4 -bottom-4 text-7xl text-surface-hover opacity-50 font-black tracking-tighter group-hover:scale-110 transition-transform select-none">あ</div>
+         <div className="flex items-start justify-between relative z-10">
+            <div className="w-9 h-9 bg-deck-cream text-brand rounded-xl flex items-center justify-center mb-3">
+               <Book className="w-4 h-4" />
+            </div>
+            <div className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
+               <ChevronRight className="w-4 h-4" />
             </div>
          </div>
-         <h3 className="text-xl font-bold text-ink mb-2 relative z-10">Custom Study</h3>
-         <p className="text-ink-muted text-sm relative z-10">Pick decks and a word count to build your own study session.</p>
+         <h2 className="text-base font-bold text-ink mb-1 relative z-10">Learn Kana</h2>
+         <p className="text-ink-muted text-xs relative z-10">Master Hiragana and Katakana with our interactive typing practice.</p>
+      </Link>
+   </motion.div>
+
+      {/* Custom Study Link */}
+      <motion.div
+      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
+      >
+      <Link to="/study" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+         <div className="flex items-start justify-between relative z-10">
+            <div className="w-9 h-9 bg-deck-mist text-brand rounded-xl flex items-center justify-center mb-3">
+               <Layers className="w-4 h-4" />
+            </div>
+            <div className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
+               <ChevronRight className="w-4 h-4" />
+            </div>
+         </div>
+         <h2 className="text-base font-bold text-ink mb-1 relative z-10">Custom Study</h2>
+         <p className="text-ink-muted text-xs relative z-10">Pick decks and a word count to build your own study session.</p>
       </Link>
    </motion.div>
 
    {/* Test Mode Link */}
    <motion.div
-   initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }}
-   >
-   <Link to="/test" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-[28px] p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
-      <div className="flex items-start justify-between relative z-10">
-         <div className="w-12 h-12 bg-deck-rose text-brand rounded-2xl flex items-center justify-center mb-4">
-            <ClipboardCheck className="w-6 h-6" />
-         </div>
-         <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
-            <ChevronRight className="w-5 h-5" />
-         </div>
-      </div>
-      <h3 className="text-xl font-bold text-ink mb-2 relative z-10">Test Yourself</h3>
-      <p className="text-ink-muted text-sm relative z-10">Check your retention on any deck without touching its study schedule.</p>
-   </Link>
-</motion.div>
-
-      {/* Learn Kana Link */}
-      <motion.div
-      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.4 }}
-      >
-      <Link to="/kana" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-[28px] p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
-         <div className="absolute -right-6 -bottom-6 text-9xl text-surface-hover opacity-50 font-black tracking-tighter group-hover:scale-110 transition-transform select-none">あ</div>
-         <div className="flex items-start justify-between relative z-10">
-            <div className="w-12 h-12 bg-deck-cream text-brand rounded-2xl flex items-center justify-center mb-4">
-               <Book className="w-6 h-6" />
-            </div>
-            <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
-               <ChevronRight className="w-5 h-5" />
-            </div>
-         </div>
-         <h3 className="text-xl font-bold text-ink mb-2 relative z-10">Learn Kana</h3>
-         <p className="text-ink-muted text-sm relative z-10">Master Hiragana and Katakana with our interactive typing practice.</p>
-      </Link>
-   </motion.div>
-
-   {/* Journal CTA */}
-   <motion.div
    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.45 }}
    >
-   <div className="h-full bg-surface border border-border-hiyori rounded-[28px] p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
-      <div className="absolute right-0 top-0 w-32 h-32 bg-linear-to-bl from-deck-sky/10 to-transparent rounded-bl-full -z-10" />
-      <div>
-         <div className="flex items-start justify-between mb-4">
-            <div className="w-12 h-12 bg-deck-sky-surface text-brand rounded-2xl flex items-center justify-center">
-               <PenTool className="w-6 h-6" />
-            </div>
-            <span className="bg-surface-hover text-ink-muted text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-               <CalendarDays className="w-3 h-3" /> Today
-            </span>
+   <Link to="/test" className="block h-full bg-surface hover:bg-card-hover border border-border-hiyori rounded-2xl p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group relative overflow-hidden">
+      <div className="flex items-start justify-between relative z-10">
+         <div className="w-9 h-9 bg-deck-rose text-brand rounded-xl flex items-center justify-center mb-3">
+            <ClipboardCheck className="w-4 h-4" />
          </div>
-         <h3 className="text-xl font-bold text-ink mb-2">Daily Journal</h3>
-         <p className="text-ink-muted text-sm">Write a short entry in Japanese. We'll highlight words you're learning!</p>
+         <div className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow-sm text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
+            <ChevronRight className="w-4 h-4" />
+         </div>
       </div>
-      <Link to="/journal" className="mt-6 bg-page hover:bg-surface-hover border border-border-hiyori text-ink w-full py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
-         Write Entry
-      </Link>
-   </div>
+      <h2 className="text-base font-bold text-ink mb-1 relative z-10">Test Yourself</h2>
+      <p className="text-ink-muted text-xs relative z-10">Check your retention on any deck without touching its study schedule.</p>
+   </Link>
 </motion.div>
 </div>
 
 {/* Decks Section */}
-<motion.div 
+<motion.div
 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
 >
-<div className="flex items-center justify-between mb-6">
-   <h2 className="text-2xl font-bold text-ink">Recent Decks</h2>
-   <Link to="/decks" className="text-brand font-medium hover:underline flex items-center gap-1">
-      View all <ChevronRight className="w-4 h-4" />
+<div className="flex items-center justify-between mb-4">
+   <h2 className="text-lg font-bold text-ink">Recent Decks</h2>
+   <Link to="/decks" className="text-brand text-sm font-medium hover:underline flex items-center gap-1">
+      View all <ChevronRight className="w-3.5 h-3.5" />
    </Link>
 </div>
 
-<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-   {recentDecks.map(({ deck, color, lastStudied }) => (
-   <Link to={`/decks/${deck.id}`} key={deck.id} className="bg-surface rounded-3xl p-6 border border-border-hiyori shadow-sm hover:shadow-md transition-shadow cursor-pointer group flex flex-col">
-      <div className="flex justify-between items-start mb-6">
-         <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", color, "bg-opacity-20")}>
-            <Book className={cn("w-6 h-6", color.replace('bg-', 'text-'))} />
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   {recentDecks.map(({ deck, colorTint, colorIcon, lastStudied }) => (
+   <Link to={`/decks/${deck.id}`} key={deck.id} className="bg-surface rounded-2xl p-5 border border-border-hiyori shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col">
+      <div className="flex justify-between items-start mb-4">
+         <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", colorTint)}>
+            <Book className={cn("w-4 h-4", colorIcon)} />
          </div>
-         <div className="w-8 h-8 bg-page rounded-full flex items-center justify-center text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
-            <ChevronRight className="w-5 h-5" />
+         <div className="w-7 h-7 bg-page rounded-full flex items-center justify-center text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
+            <ChevronRight className="w-4 h-4" />
          </div>
       </div>
-      
+
       <div className="flex-1">
-         <h3 className="font-bold text-lg text-ink mb-1 group-hover:text-brand transition-colors">{deck.title}</h3>
-         <p className="text-ink-muted text-sm mb-6">{deck.cards.length} cards • {lastStudied}</p>
+         <h3 className="font-bold text-sm text-ink mb-1 group-hover:text-brand transition-colors">{deck.title}</h3>
+         <p className="text-ink-muted text-xs">{deck.cards.length} cards • {lastStudied}</p>
       </div>
 
    </Link>
@@ -453,7 +565,7 @@ initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ del
 </div>
 
 {recentDecks.length === 0 && (
-   <div className="bg-surface rounded-3xl p-8 border border-border-hiyori shadow-sm text-center">
+   <div className="bg-surface rounded-2xl p-7 border border-border-hiyori shadow-sm text-center">
       <h3 className="font-bold text-lg text-ink">No decks yet</h3>
       <p className="text-ink-muted text-sm mt-2">Create a deck to start filling your dashboard with study data.</p>
       <Link to="/decks" className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-colors">

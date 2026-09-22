@@ -21,11 +21,11 @@ import iconT from "../../media/icon-t.png";
 // Navigation is data-driven so future pages can be enabled or disabled in one place.
 const navItems = [
 { name: "Home", path: "/", icon: Home },
+{ name: "Journal", path: "/journal", icon: PenTool },
 { name: "Decks", path: "/decks", icon: BookOpen },
 { name: "Study", path: "/study", icon: Layers },
 { name: "Test", path: "/test", icon: ClipboardCheck },
 { name: "Routines", path: "/routines", icon: Repeat },
-{ name: "Journal", path: "/journal", icon: PenTool },
 { name: "Dictionary", path: "/dictionary", icon: BookA, disabled: true },
 { name: "Insights", path: "/insights", icon: BarChart2, disabled: true },
 { name: "AI Tutor", path: "/ai-tutor", icon: Bot, disabled: true },

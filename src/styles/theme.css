@@ -128,6 +128,19 @@
   --card-hover: #2E2B28;
 }
 
+/* High Contrast: the light theme's base (page/surface/ink/borders unchanged), with
+   just the colors that carry real text/button meaning darkened enough to clear
+   WCAG AA (4.5:1), including against their own /10 tint chip backgrounds. Verified
+   with axe-core - see git history around the theme.css contrast work for the math. */
+.high-contrast {
+  --ink-muted: #726A60;
+  --brand: #AC451A;
+  --brand-hover: #8D3916;
+  --success: #636E32;
+  --success-hover: #515A29;
+  --destructive-hover: #D82323;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -254,4 +267,44 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+}
+
+/* Thin, theme-colored scrollbar for internal scroll panes (rounded cards, modals). The
+   browser's default scrollbar is a plain gray rectangle - it looks unstyled against this
+   app's warm palette, and an ancestor's overflow-hidden rounding a *different* element
+   than the one that actually scrolls clips it with a hard edge instead of a curve. Apply
+   this class directly to the scrolling element (the one with overflow-y/x-auto) so both
+   problems go away together. */
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hiyori) transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-hiyori);
+  border-radius: 9999px;
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink-faint);
+}
+
+/* Windows Chrome/Edge draw up/down arrow buttons at the scrollbar's ends by default,
+   even with a custom thumb - those are square and sit right at the rounded corner,
+   so they're what was actually getting visually cropped. Remove them outright. */
+.themed-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }

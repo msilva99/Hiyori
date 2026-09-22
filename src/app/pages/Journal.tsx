@@ -1,10 +1,11 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useId } from "react";
 import { motion } from "motion/react";
 import { createPortal } from "react-dom";
 import type { JournalEntry, JournalSlot } from "../data/types";
 import { useDecksStore } from "../store/decksStore";
 import { useJournalStore } from "../store/journalStore";
 import { Modal } from "../components/Modal";
+import { Select } from "../components/Select";
 import {
    buildVocabularyIndex,
    parseJournalText,
@@ -334,28 +335,25 @@ return (
                                   </div>
                                   {entries.length > 0 && (
                                      <div className="p-3 border-b border-border-hiyori bg-page flex items-center gap-2 shrink-0">
-                                        <select
+                                        <Select
                                            value={historyMonthFilter}
-                                           onChange={(e) => setHistoryMonthFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                                           aria-label="Filter entries by month"
-                                           className="flex-1 min-w-0 text-sm font-bold bg-surface border border-border-hiyori rounded-lg px-2 py-1.5 text-ink focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer"
-                                        >
-                                           <option value="all">All months</option>
-                                           {MONTH_OPTIONS.map(month => (
-                                              <option key={month.value} value={month.value}>{month.label}</option>
-                                           ))}
-                                        </select>
-                                        <select
+                                           onChange={setHistoryMonthFilter}
+                                           options={[{ value: 'all' as const, label: 'All months' }, ...MONTH_OPTIONS]}
+                                           ariaLabel="Filter entries by month"
+                                           className="w-full text-sm py-1.5 px-2"
+                                           wrapperClassName="flex-1 min-w-0"
+                                           matchTriggerWidth
+                                        />
+                                        <Select
                                            value={historyYearFilter}
-                                           onChange={(e) => setHistoryYearFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                                           aria-label="Filter entries by year"
-                                           className="text-sm font-bold bg-surface border border-border-hiyori rounded-lg px-2 py-1.5 text-ink focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer"
-                                        >
-                                           <option value="all">All years</option>
-                                           {availableHistoryYears.map(year => (
-                                              <option key={year} value={year}>{year}</option>
-                                           ))}
-                                        </select>
+                                           onChange={setHistoryYearFilter}
+                                           options={[
+                                              { value: 'all' as const, label: 'All years' },
+                                              ...availableHistoryYears.map(year => ({ value: year, label: String(year) })),
+                                           ]}
+                                           ariaLabel="Filter entries by year"
+                                           className="text-sm py-1.5 px-2"
+                                        />
                                      </div>
                                   )}
                                   <div className="overflow-y-auto">
@@ -482,7 +480,7 @@ return (
                            )}
 
                         {currentEntry.body.trim().length > 0 && (
-                           <p className="text-xs font-bold text-ink-faint uppercase tracking-wider flex items-center gap-2 mb-8">
+                           <p className="text-xs font-bold text-ink-muted uppercase tracking-wider flex items-center gap-2 mb-8">
                               <span>{currentEntry.body.replace(/\s+/g, "").length} characters</span>
                               <span aria-hidden="true">·</span>
                               <span>{knownWordCount} known word{knownWordCount !== 1 ? "s" : ""} used</span>
@@ -516,7 +514,7 @@ return (
                      <PenTool className="w-10 h-10" />
                   </div>
                   <div>
-                     <h3 className="text-2xl font-bold text-ink">No entry yet</h3>
+                     <h1 className="text-2xl font-bold text-ink">No entry yet</h1>
                      <p className="text-ink-muted mt-2 max-w-md">Write about your day in Japanese. Don't worry about making mistakes, just practice!</p>
                   </div>
                   <button
@@ -582,7 +580,7 @@ return (
                   <button
                      onClick={() => removeSlot(slot.id)}
                      aria-label="Remove slot"
-                     className="p-1 hover:bg-deck-cream text-ink-faint hover:text-destructive rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                     className="p-1 hover:bg-deck-cream text-ink-faint hover:text-destructive rounded-lg transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                   >
                      <X className="w-4 h-4" />
                   </button>
@@ -698,26 +696,34 @@ function HighlightedWord({
 }: HighlightedWordProps) {
    const tooltipRef = useRef<HTMLDivElement>(null);
    const [align, setAlign] = useState<"center" | "left" | "right">("center");
+   const tooltipId = useId();
+
+   const positionTooltip = () => {
+      if (!tooltipRef.current) return;
+      const rect = tooltipRef.current.getBoundingClientRect();
+      if (rect.left < 0) setAlign("left");
+      else if (rect.right > window.innerWidth) setAlign("right");
+      else setAlign("center");
+   };
 
    return (
       <span className="relative group inline">
          <span
-            className="bg-brand/20 text-brand-hover font-bold px-1 rounded cursor-pointer hover:bg-brand/30 transition-colors"
-            onMouseEnter={() => {
-               if (!tooltipRef.current) return;
-               const rect = tooltipRef.current.getBoundingClientRect();
-               if (rect.left < 0) setAlign("left");
-               else if (rect.right > window.innerWidth) setAlign("right");
-               else setAlign("center");
-            }}
+            tabIndex={0}
+            aria-describedby={tooltipId}
+            className="bg-brand/20 text-brand-hover font-bold px-1 rounded cursor-pointer hover:bg-brand/30 focus-visible:bg-brand/30 focus-visible:outline-2 focus-visible:outline-brand transition-colors"
+            onMouseEnter={positionTooltip}
+            onFocus={positionTooltip}
          >
             {token.content}
          </span>
 
          <div
             ref={tooltipRef}
+            id={tooltipId}
+            role="tooltip"
             className={cn(
-               "absolute bottom-full mb-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50",
+               "absolute bottom-full mb-2 opacity-0 pointer-events-none group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50",
                align === "center" && "left-1/2 -translate-x-1/2",
                align === "left" && "left-0",
                align === "right" && "right-0",
