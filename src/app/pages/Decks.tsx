@@ -18,15 +18,15 @@ import { cn } from "../../lib/utils";
 import { useDecksStore } from "../store/decksStore";
 import { isCardDue } from "../data/srs";
 import { Modal } from "../components/Modal";
+import { Select, type SelectOption } from "../components/Select";
 import type { Card, Deck } from "../data/types";
 
-const deckColorClasses = [
-   "bg-deck-pine",
-   "bg-deck-sand",
-   "bg-deck-sky",
-   "bg-deck-rose",
-   "bg-deck-cream",
-   "bg-deck-mist",
+type SortBy = "lastStudied" | "alphabetical" | "inProgress";
+
+const SORT_OPTIONS: SelectOption<SortBy>[] = [
+   { value: "lastStudied", label: "Last Studied" },
+   { value: "alphabetical", label: "Alphabetical" },
+   { value: "inProgress", label: "In Progress" },
 ];
 
 // Written out as literal classes (not built with a template string) so Tailwind's
@@ -41,12 +41,23 @@ const deckColorTintClasses = [
    "bg-deck-mist/20",
 ];
 
-function getDeckColor(index: number) {
-   return deckColorClasses[index % deckColorClasses.length];
-}
+// Same reasoning as the tint array above - `color.replace('bg-', 'text-')` at
+// runtime never spells out "text-deck-pine" in source text for Tailwind to find.
+const deckIconColorClasses = [
+   "text-deck-pine",
+   "text-deck-sand",
+   "text-deck-sky",
+   "text-deck-rose",
+   "text-deck-cream",
+   "text-deck-mist",
+];
 
 function getDeckColorTint(index: number) {
    return deckColorTintClasses[index % deckColorTintClasses.length];
+}
+
+function getDeckIconColor(index: number) {
+   return deckIconColorClasses[index % deckIconColorClasses.length];
 }
 
 function getDeckMastery(deck: { masteryPerfectSessions: number }) {
@@ -122,7 +133,7 @@ export function Decks() {
    const [importError, setImportError] = useState<string | null>(null);
 
    const [searchQuery, setSearchQuery] = useState("");
-   const [sortBy, setSortBy] = useState<"lastStudied" | "alphabetical" | "inProgress">("lastStudied");
+   const [sortBy, setSortBy] = useState<SortBy>("lastStudied");
 
    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
@@ -280,20 +291,15 @@ export function Decks() {
                />
             </div>
             <div className="w-px h-8 bg-border-hiyori hidden md:block" />
-            <div className="hidden md:flex items-center gap-2 px-4 text-ink-muted">
+            <div className="hidden md:flex items-center gap-2 text-ink-muted">
                <span className="text-sm font-medium">Sort by:</span>
-               <select
+               <Select
                   value={sortBy}
-                  onChange={(e) =>
-                     setSortBy(e.target.value as typeof sortBy)
-                  }
-                  aria-label="Sort decks by"
-                  className="bg-transparent font-bold text-ink focus:outline-none cursor-pointer"
-               >
-                  <option value="lastStudied">Last Studied</option>
-                  <option value="alphabetical">Alphabetical</option>
-                  <option value="inProgress">In Progress</option>
-               </select>
+                  onChange={setSortBy}
+                  options={SORT_OPTIONS}
+                  ariaLabel="Sort decks by"
+                  className="border-none bg-transparent py-1.5 px-2 hover:bg-surface-hover"
+               />
             </div>
          </motion.div>
 
@@ -302,14 +308,14 @@ export function Decks() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
+            className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6 relative z-10"
          >
             {filteredDecks.map((deck, i) => {
                const totalCards = deck.cards.length;
                const dueCards = deck.cards.filter((card) => isCardDue(card)).length;
                const progress = getDeckMastery(deck);
-               const color = getDeckColor(i);
                const colorTint = getDeckColorTint(i);
+               const colorIcon = getDeckIconColor(i);
 
                return (
                   <motion.div 
@@ -317,7 +323,7 @@ export function Decks() {
                      initial={{ opacity: 0, y: 20 }}
                      animate={{ opacity: 1, y: 0 }}
                      transition={{ delay: 0.2 + i * 0.05 }}
-                     className="bg-surface rounded-[28px] p-6 border border-border-hiyori shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-visible min-w-[280px]"
+                     className="bg-surface rounded-[28px] p-6 border border-border-hiyori shadow-sm hover:shadow-md transition-all group flex flex-col relative overflow-visible min-w-0"
                   >
                      {/* Top Right Menu */}
                      <div className="absolute top-6 right-4">
@@ -370,7 +376,7 @@ export function Decks() {
 
                      <div className="flex items-start gap-4 mb-6">
                         <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0", colorTint)}>
-                           <Book className={cn("w-7 h-7", color.replace("bg-", "text-"))} />
+                           <Book className={cn("w-7 h-7", colorIcon)} />
                         </div>
                         <div className="pt-1">
                            <h2 className="font-bold text-xl text-ink leading-tight mb-1 group-hover:text-brand transition-colors pr-12 line-clamp-2">{deck.title}</h2>
