@@ -6,14 +6,15 @@ import {
    ChevronRight,
    PenTool,
    Play,
-   CalendarDays,
    Sparkles,
    TrendingUp,
    Repeat,
    Layers,
    ClipboardCheck,
-   Clock3,
-   CheckCircle2
+   Trophy,
+   CheckCircle2,
+   Check,
+   X
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useDecksStore } from "../store/decksStore";
@@ -22,7 +23,6 @@ import { useJournalStore } from "../store/journalStore";
 import { useRoutinesStore } from "../store/routinesStore";
 import { startRoutineRun } from "../store/routineRunStore";
 import { getStepSummary } from "../data/routines";
-import { isCardDue } from "../data/srs";
 import type { Deck, JournalEntry, StudyLogEntry } from "../data/types";
 
 const DAILY_GOAL_CARDS = 10;
@@ -48,12 +48,27 @@ const deckColorTintClasses = [
 "bg-deck-mist/20",
 ];
 
+// Same reasoning as the tint array above - `color.replace('bg-', 'text-')` at
+// runtime never spells out "text-deck-pine" in source text for Tailwind to find.
+const deckIconColorClasses = [
+"text-deck-pine",
+"text-deck-sand",
+"text-deck-sky",
+"text-deck-rose",
+"text-deck-cream",
+"text-deck-mist",
+];
+
 function getDeckColor(index: number) {
    return deckColorClasses[index % deckColorClasses.length];
 }
 
 function getDeckColorTint(index: number) {
    return deckColorTintClasses[index % deckColorTintClasses.length];
+}
+
+function getDeckIconColor(index: number) {
+   return deckIconColorClasses[index % deckIconColorClasses.length];
 }
 
 function getLocalDateKey(date: Date) {
@@ -119,6 +134,26 @@ function getCurrentStreak(activeDateKeys: Set<string>) {
    return streak;
 }
 
+function getBestStreak(activeDateKeys: Set<string>) {
+   const sortedDateKeys = [...activeDateKeys].sort();
+   let bestStreak = 0;
+   let currentRun = 0;
+   let previousDate: Date | null = null;
+
+   for (const dateKey of sortedDateKeys) {
+      const date = new Date(dateKey);
+      const dayDifference = previousDate
+         ? Math.round((date.getTime() - previousDate.getTime()) / 86400000)
+         : 1;
+
+      currentRun = dayDifference === 1 ? currentRun + 1 : 1;
+      bestStreak = Math.max(bestStreak, currentRun);
+      previousDate = date;
+   }
+
+   return bestStreak;
+}
+
 function getWeekDays(activeDateKeys: Set<string>) {
    const todayKey = getLocalDateKey(new Date());
    const startOfWeek = getStartOfWeek(new Date());
@@ -134,6 +169,8 @@ function getWeekDays(activeDateKeys: Set<string>) {
          date: date.getDate(),
          studied: activeDateKeys.has(dateKey),
          isToday: dateKey === todayKey,
+         // A day later this week that hasn't happened yet - no verdict to show for it.
+         isFuture: dateKey > todayKey,
       };
    });
 }
@@ -177,6 +214,7 @@ function getRecentDecks(decks: Deck[], studyLog: StudyLogEntry[]) {
          deck,
          color: getDeckColor(index),
          colorTint: getDeckColorTint(index),
+         colorIcon: getDeckIconColor(index),
          lastStudiedAt,
          lastStudied: getLastStudiedLabel(lastStudiedAt),
       };
@@ -215,21 +253,6 @@ function getLeastRecentlyStudiedDeck(decks: Deck[], studyLog: StudyLogEntry[]) {
    .at(0)?.deck;
 }
 
-function getDueSummary(decks: Deck[]) {
-   const now = new Date();
-   const deckDueCounts = decks
-      .map((deck) => ({
-         deck,
-         dueCount: deck.cards.filter((card) => isCardDue(card, now)).length,
-      }))
-      .filter((entry) => entry.dueCount > 0)
-      .sort((a, b) => b.dueCount - a.dueCount);
-
-   const totalDue = deckDueCounts.reduce((total, entry) => total + entry.dueCount, 0);
-
-   return { totalDue, deckDueCounts };
-}
-
 export function Home() {
    const navigate = useNavigate();
    const decks = useDecksStore((state) => state.decks);
@@ -242,6 +265,7 @@ export function Home() {
    const activeDateKeys = getActiveDateKeys(studyLog, journalEntries);
    const weekDays = getWeekDays(activeDateKeys);
    const currentStreak = getCurrentStreak(activeDateKeys);
+   const bestStreak = getBestStreak(activeDateKeys);
 
    const studyCardsByDate = getStudyCardsByDate(studyLog);
    const studiedToday = studyCardsByDate[getLocalDateKey(new Date())] ?? 0;
@@ -251,10 +275,10 @@ export function Home() {
    const continueStudyPath = nextStudyDeck ? `/decks/${nextStudyDeck.id}/study` : "/decks";
    const studyButtonLabel = studiedToday === 0 ? "Start Study" : "Continue Study";
    const recentDecks = getRecentDecks(decks, studyLog);
-   const { totalDue, deckDueCounts } = getDueSummary(decks);
+   const journaledToday = journalEntries.some((entry) => entry.date === getLocalDateKey(new Date()));
 
    return (
-   <div className="space-y-7 font-sans max-w-4xl mx-auto w-full">
+   <div className="space-y-7 font-sans max-w-3xl mx-auto w-full">
       {/* Header */}
       <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -295,18 +319,21 @@ export function Home() {
             </div>
 
             {/* Week days tracker */}
-            <div className="flex items-end gap-3 mt-4 flex-wrap gap-y-1.5">
+            <div className="grid grid-cols-7 gap-1.5 mt-4">
                {weekDays.map((day, i) => (
                   <div key={i} className="flex flex-col items-center gap-1">
                      <div
                      className={cn(
                      "w-6 h-6 rounded-full flex items-center justify-center transition-all",
                      day.isToday && "ring-2 ring-offset-2 ring-brand",
-                     day.studied ? "bg-brand text-white shadow-sm shadow-brand/30" : "bg-surface-hover text-ink-faint"
+                     day.studied ? "bg-brand text-white shadow-sm shadow-brand/30" : "bg-surface-hover text-ink-muted"
                      )}
                      >
-                     {day.studied && !day.isToday && <Sparkles className="w-2.5 h-2.5" />}
-                     {day.isToday && !day.studied ? <span className="w-1.5 h-1.5 rounded-full bg-surface opacity-50 block" /> : null}
+                     {day.studied ? (
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                     ) : !day.isToday && !day.isFuture ? (
+                        <X className="w-3 h-3" strokeWidth={3} />
+                     ) : null}
                   </div>
                   <span className={cn(
                   "text-[11px] font-bold",
@@ -319,43 +346,42 @@ export function Home() {
          </div>
       </motion.div>
 
-      {/* Cards Due Card */}
+      {/* Best Streak Card */}
       <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
       className="bg-surface rounded-2xl p-5 shadow-sm border border-border-hiyori flex flex-col relative overflow-hidden group"
       >
-      <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-success/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
+      <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-amber-400/10 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110" />
       <div className="flex items-center justify-between mb-3">
          <h2 className="text-ink-muted text-sm font-medium flex items-center gap-1.5">
-            <Clock3 className="w-4 h-4 text-success" /> Cards Due
+            <Trophy className="w-4 h-4 text-amber-500 fill-amber-500" /> Best Streak
          </h2>
-         {totalDue === 0 && (
-            <div className="bg-success/10 text-success text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-               <CheckCircle2 className="w-3 h-3" /> Caught up
+         {bestStreak > 0 && currentStreak >= bestStreak && (
+            <div className="bg-amber-500/10 text-amber-600 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+               <Sparkles className="w-3 h-3" /> Personal best
             </div>
          )}
       </div>
       <div className="flex items-end gap-2">
-         <span className="text-3xl font-black text-ink">{totalDue}</span>
-         <span className="text-ink-muted mb-0.5 text-sm font-medium">{totalDue === 1 ? "card" : "cards"}</span>
+         <span className="text-3xl font-black text-ink">{bestStreak}</span>
+         <span className="text-ink-muted mb-0.5 text-sm font-medium">{bestStreak === 1 ? "day" : "days"}</span>
       </div>
 
-      {deckDueCounts.length > 0 ? (
-         <div className="flex flex-col gap-1.5 mt-4">
-            {deckDueCounts.slice(0, 3).map(({ deck, dueCount }) => (
-               <Link
-                  key={deck.id}
-                  to={`/decks/${deck.id}/study`}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-page hover:bg-surface-hover transition-colors text-sm"
-               >
-                  <span className="font-medium text-ink truncate">{deck.title}</span>
-                  <span className="text-ink-muted font-bold shrink-0 ml-2">{dueCount}</span>
-               </Link>
-            ))}
+      <div className="mt-4">
+         <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
+            <div
+               className="h-full bg-amber-400 rounded-full transition-all"
+               style={{ width: `${bestStreak === 0 ? 0 : Math.min((currentStreak / bestStreak) * 100, 100)}%` }}
+            />
          </div>
-      ) : (
-         <p className="text-ink-muted text-sm mt-4">Nothing due right now. Nice work!</p>
-      )}
+         <p className="text-ink-muted text-xs mt-2">
+            {bestStreak === 0
+               ? "Study or journal today to start your first streak."
+               : currentStreak >= bestStreak
+               ? "You're on your best streak ever!"
+               : `${bestStreak - currentStreak} more ${bestStreak - currentStreak === 1 ? "day" : "days"} to match your record.`}
+         </p>
+      </div>
       </motion.div>
    </div>
 
@@ -432,15 +458,17 @@ export function Home() {
                <div className="w-9 h-9 bg-deck-sky-surface text-brand rounded-xl flex items-center justify-center">
                   <PenTool className="w-4 h-4" />
                </div>
-               <span className="bg-surface-hover text-ink-muted text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <CalendarDays className="w-3 h-3" /> Today
-               </span>
+               {journaledToday && (
+                  <span className="bg-success/10 text-success text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                     <CheckCircle2 className="w-3 h-3" /> Written today
+                  </span>
+               )}
             </div>
             <h2 className="text-base font-bold text-ink mb-1">Daily Journal</h2>
             <p className="text-ink-muted text-xs">Write a short entry in Japanese. We'll highlight words you're learning!</p>
          </div>
          <Link to="/journal" className="mt-4 bg-brand hover:bg-brand-hover text-white w-full py-2 text-sm rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-sm shadow-brand/20">
-            Write Entry
+            {journaledToday ? "View Entry" : "Write Entry"}
          </Link>
       </div>
       </motion.div>
@@ -516,11 +544,11 @@ initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ del
 </div>
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-   {recentDecks.map(({ deck, color, colorTint, lastStudied }) => (
+   {recentDecks.map(({ deck, colorTint, colorIcon, lastStudied }) => (
    <Link to={`/decks/${deck.id}`} key={deck.id} className="bg-surface rounded-2xl p-5 border border-border-hiyori shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col">
       <div className="flex justify-between items-start mb-4">
          <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", colorTint)}>
-            <Book className={cn("w-4 h-4", color.replace('bg-', 'text-'))} />
+            <Book className={cn("w-4 h-4", colorIcon)} />
          </div>
          <div className="w-7 h-7 bg-page rounded-full flex items-center justify-center text-ink-muted group-hover:bg-brand group-hover:text-white transition-colors">
             <ChevronRight className="w-4 h-4" />
