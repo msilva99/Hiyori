@@ -53,9 +53,9 @@ export function resolveSessionCard(decks: Deck[], ref: { cardId: string; deckId:
    return { ...card, deckId: deck.id, deckTitle: deck.title };
 }
 
-// ~8s/card covers reading the prompt, deciding, flipping, and grading - a rough
+// ~12s/card covers reading the prompt, deciding, flipping, and grading - a rough
 // but reasonable average across easy vocab and trickier words.
-const SECONDS_PER_CARD = 8;
+const SECONDS_PER_CARD = 12;
 
 export function estimateSessionSeconds(cardCount: number) {
    return cardCount * SECONDS_PER_CARD;
