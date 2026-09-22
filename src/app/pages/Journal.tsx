@@ -5,6 +5,7 @@ import type { JournalEntry, JournalSlot } from "../data/types";
 import { useDecksStore } from "../store/decksStore";
 import { useJournalStore } from "../store/journalStore";
 import { Modal } from "../components/Modal";
+import { Select } from "../components/Select";
 import {
    buildVocabularyIndex,
    parseJournalText,
@@ -334,28 +335,25 @@ return (
                                   </div>
                                   {entries.length > 0 && (
                                      <div className="p-3 border-b border-border-hiyori bg-page flex items-center gap-2 shrink-0">
-                                        <select
+                                        <Select
                                            value={historyMonthFilter}
-                                           onChange={(e) => setHistoryMonthFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                                           aria-label="Filter entries by month"
-                                           className="flex-1 min-w-0 text-sm font-bold bg-surface border border-border-hiyori rounded-lg px-2 py-1.5 text-ink focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer"
-                                        >
-                                           <option value="all">All months</option>
-                                           {MONTH_OPTIONS.map(month => (
-                                              <option key={month.value} value={month.value}>{month.label}</option>
-                                           ))}
-                                        </select>
-                                        <select
+                                           onChange={setHistoryMonthFilter}
+                                           options={[{ value: 'all' as const, label: 'All months' }, ...MONTH_OPTIONS]}
+                                           ariaLabel="Filter entries by month"
+                                           className="w-full text-sm py-1.5 px-2"
+                                           wrapperClassName="flex-1 min-w-0"
+                                           matchTriggerWidth
+                                        />
+                                        <Select
                                            value={historyYearFilter}
-                                           onChange={(e) => setHistoryYearFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                                           aria-label="Filter entries by year"
-                                           className="text-sm font-bold bg-surface border border-border-hiyori rounded-lg px-2 py-1.5 text-ink focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer"
-                                        >
-                                           <option value="all">All years</option>
-                                           {availableHistoryYears.map(year => (
-                                              <option key={year} value={year}>{year}</option>
-                                           ))}
-                                        </select>
+                                           onChange={setHistoryYearFilter}
+                                           options={[
+                                              { value: 'all' as const, label: 'All years' },
+                                              ...availableHistoryYears.map(year => ({ value: year, label: String(year) })),
+                                           ]}
+                                           ariaLabel="Filter entries by year"
+                                           className="text-sm py-1.5 px-2"
+                                        />
                                      </div>
                                   )}
                                   <div className="overflow-y-auto">

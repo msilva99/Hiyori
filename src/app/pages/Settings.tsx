@@ -1,99 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { RefreshCw, DownloadCloud, CheckCircle2, AlertTriangle, Sun, Moon, Contrast, ChevronDown, Check } from "lucide-react";
+import { RefreshCw, DownloadCloud, CheckCircle2, AlertTriangle, Sun, Moon, Contrast } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { cn } from "../../lib/utils";
 import { useUpdaterStore } from "../store/updaterStore";
 import { useThemeStore, type Theme } from "../store/themeStore";
+import { Select } from "../components/Select";
 
 const THEME_OPTIONS: { value: Theme; label: string; description: string; icon: typeof Sun }[] = [
    { value: "light", label: "Light", description: "The default look.", icon: Sun },
    { value: "dark", label: "Dark", description: "Easier on the eyes in low light.", icon: Moon },
    { value: "high-contrast", label: "High Contrast", description: "Darker text and buttons for stronger contrast.", icon: Contrast },
 ];
-
-function ThemeSelect({ theme, onChange }: { theme: Theme; onChange: (theme: Theme) => void }) {
-   const [isOpen, setIsOpen] = useState(false);
-   const containerRef = useRef<HTMLDivElement>(null);
-   const activeOption = THEME_OPTIONS.find((option) => option.value === theme) ?? THEME_OPTIONS[0];
-
-   // Same outside-click/Escape pattern as the Journal history popover: document
-   // listeners instead of a full-viewport overlay, so there's no extra node for
-   // a screen reader to navigate around when the menu is closed.
-   useEffect(() => {
-      if (!isOpen) return;
-
-      const handlePointerDown = (event: MouseEvent) => {
-         if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-            setIsOpen(false);
-         }
-      };
-
-      const handleKeyDown = (event: KeyboardEvent) => {
-         if (event.key === "Escape") {
-            setIsOpen(false);
-         }
-      };
-
-      document.addEventListener("mousedown", handlePointerDown);
-      document.addEventListener("keydown", handleKeyDown);
-
-      return () => {
-         document.removeEventListener("mousedown", handlePointerDown);
-         document.removeEventListener("keydown", handleKeyDown);
-      };
-   }, [isOpen]);
-
-   return (
-      <div className="relative shrink-0" ref={containerRef}>
-         <button
-            type="button"
-            onClick={() => setIsOpen((current) => !current)}
-            aria-haspopup="listbox"
-            aria-expanded={isOpen}
-            className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-border-hiyori bg-page text-ink font-bold focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer min-w-44 justify-between transition-colors hover:bg-surface-hover"
-         >
-            <span className="flex items-center gap-2">
-               <activeOption.icon className="w-4 h-4 text-brand" /> {activeOption.label}
-            </span>
-            <ChevronDown className={cn("w-4 h-4 text-ink-muted transition-transform", isOpen && "rotate-180")} />
-         </button>
-
-         {isOpen && (
-            <div
-               role="listbox"
-               aria-label="Theme"
-               className="absolute right-0 top-full mt-2 w-56 bg-surface border border-border-hiyori shadow-xl rounded-2xl z-30 overflow-hidden py-1"
-            >
-               {THEME_OPTIONS.map((option) => {
-                  const isSelected = option.value === theme;
-                  return (
-                     <button
-                        key={option.value}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        onClick={() => {
-                           onChange(option.value);
-                           setIsOpen(false);
-                        }}
-                        className={cn(
-                           "w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors text-left cursor-pointer",
-                           isSelected ? "bg-brand-surface text-brand" : "text-ink hover:bg-page"
-                        )}
-                     >
-                        <option.icon className="w-4 h-4 shrink-0" />
-                        <span className="flex-1">{option.label}</span>
-                        {isSelected && <Check className="w-4 h-4 shrink-0" />}
-                     </button>
-                  );
-               })}
-            </div>
-         )}
-      </div>
-   );
-}
 
 export function Settings() {
    const desktop = isTauri();
@@ -130,7 +49,7 @@ export function Settings() {
                   <p className="text-ink font-medium">Theme</p>
                   <p className="text-sm text-ink-muted mt-1">{activeThemeOption.description}</p>
                </div>
-               <ThemeSelect theme={theme} onChange={setTheme} />
+               <Select value={theme} onChange={setTheme} options={THEME_OPTIONS} ariaLabel="Theme" className="min-w-44" />
             </div>
          </motion.div>
 
