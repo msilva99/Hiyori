@@ -268,3 +268,43 @@
     line-height: 1.5;
   }
 }
+
+/* Thin, theme-colored scrollbar for internal scroll panes (rounded cards, modals). The
+   browser's default scrollbar is a plain gray rectangle - it looks unstyled against this
+   app's warm palette, and an ancestor's overflow-hidden rounding a *different* element
+   than the one that actually scrolls clips it with a hard edge instead of a curve. Apply
+   this class directly to the scrolling element (the one with overflow-y/x-auto) so both
+   problems go away together. */
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hiyori) transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-hiyori);
+  border-radius: 9999px;
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink-faint);
+}
+
+/* Windows Chrome/Edge draw up/down arrow buttons at the scrollbar's ends by default,
+   even with a custom thumb - those are square and sit right at the rounded corner,
+   so they're what was actually getting visually cropped. Remove them outright. */
+.themed-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}

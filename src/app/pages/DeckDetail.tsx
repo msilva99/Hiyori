@@ -23,15 +23,6 @@ import { useDecksStore } from "../store/decksStore";
 import { Modal } from "../components/Modal";
 import type { Card } from "../data/types";
 
-const deckColorClasses = [
-   "bg-deck-pine",
-   "bg-deck-sand",
-   "bg-deck-sky",
-   "bg-deck-rose",
-   "bg-deck-cream",
-   "bg-deck-mist",
-];
-
 // Written out as literal classes (not built with a template string) so Tailwind's
 // scanner can actually see and generate them - `${color}/20` at runtime doesn't work,
 // since nothing in the source text spells out e.g. "bg-deck-pine/20" for it to find.
@@ -44,13 +35,30 @@ const deckColorTintClasses = [
    "bg-deck-mist/20",
 ];
 
-function getDeckColor(index: number) {
-   return deckColorClasses[index % deckColorClasses.length];
-}
+// Same reasoning as the tint array above - `color.replace('bg-', 'text-')` at
+// runtime never spells out "text-deck-pine" in source text for Tailwind to find.
+const deckIconColorClasses = [
+   "text-deck-pine",
+   "text-deck-sand",
+   "text-deck-sky",
+   "text-deck-rose",
+   "text-deck-cream",
+   "text-deck-mist",
+];
 
 function getDeckColorTint(index: number) {
    return deckColorTintClasses[index % deckColorTintClasses.length];
 }
+
+function getDeckIconColor(index: number) {
+   return deckIconColorClasses[index % deckIconColorClasses.length];
+}
+
+// Measured height of a display-mode row (incl. its 1px bottom border). Used both as the
+// virtualizer's size estimate and to size the scroll container to a whole number of rows,
+// so the default view never crops a row mid-way through like a plain rem-based max-height would.
+const WORD_ROW_HEIGHT_PX = 77;
+const VISIBLE_WORD_ROWS = 7;
 
 function getDeckMastery(deck: { masteryPerfectSessions: number }) {
    return Math.min(deck.masteryPerfectSessions, 5) * 20;
@@ -70,8 +78,8 @@ export function DeckDetail() {
    // The URL id selects the deck from shared data. This replaces the old one-page mock deck.
    const deckIndex = decks.findIndex((item) => item.id === id);
    const deck = deckIndex >= 0 ? decks[deckIndex] : undefined;
-   const deckColor = getDeckColor(Math.max(deckIndex, 0));
    const deckColorTint = getDeckColorTint(Math.max(deckIndex, 0));
+   const deckIconColor = getDeckIconColor(Math.max(deckIndex, 0));
    const words = deck?.cards ?? [];
    const totalCards = words.length;
    const progress = deck ? getDeckMastery(deck) : 0;
@@ -123,7 +131,7 @@ export function DeckDetail() {
    const rowVirtualizer = useVirtualizer({
       count: filteredWords.length,
       getScrollElement: () => tableScrollRef.current,
-      estimateSize: () => 76,
+      estimateSize: () => WORD_ROW_HEIGHT_PX,
       overscan: 8,
    });
 
@@ -367,7 +375,7 @@ export function DeckDetail() {
                
                <div className="flex items-center gap-6 z-10">
                   <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 shadow-sm", deckColorTint)}>
-                     <Book className={cn("w-10 h-10", deckColor.replace("bg-", "text-"))} />
+                     <Book className={cn("w-10 h-10", deckIconColor)} />
                   </div>
                   <div>
                      {isEditingInfo ? (
@@ -524,7 +532,7 @@ export function DeckDetail() {
                 </div>
              )}
 
-             <div className="bg-surface border border-border-hiyori rounded-3xl shadow-sm overflow-hidden">
+             <div className="bg-surface border border-border-hiyori rounded-2xl shadow-sm overflow-hidden">
                <div className="overflow-x-auto">
                   <div role="table" style={{ minWidth: showBulkCheckboxColumn ? 640 : 600 }}>
                      <div role="row" className="grid border-b border-border-hiyori bg-page" style={{ gridTemplateColumns: wordTableColumns }}>
@@ -593,7 +601,11 @@ export function DeckDetail() {
                            <p className="text-ink-muted font-medium text-lg">No words found in this deck matching your search.</p>
                         </div>
                      ) : (
-                        <div ref={tableScrollRef} className="max-h-[32rem] overflow-y-auto">
+                        <div
+                           ref={tableScrollRef}
+                           className="overflow-y-auto rounded-b-2xl themed-scrollbar"
+                           style={{ maxHeight: WORD_ROW_HEIGHT_PX * VISIBLE_WORD_ROWS }}
+                        >
                            <div style={{ height: rowVirtualizer.getTotalSize(), position: "relative", width: "100%" }}>
                               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                                  const word = filteredWords[virtualRow.index];
