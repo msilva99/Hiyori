@@ -11,7 +11,8 @@ import {
    Book,
    Edit2,
    Trash2,
-   AlertTriangle
+   AlertTriangle,
+   Library
 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { cn } from "../../lib/utils";
@@ -263,6 +264,9 @@ export function Decks() {
                   className="hidden"
                   onChange={handleImportFile}
                />
+               <Link to="/decks/library" className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border-hiyori bg-surface text-ink font-medium hover:bg-page transition-all shadow-sm">
+                  <Library className="w-5 h-5" /> Browse Library
+               </Link>
                <button onClick={handleImportClick} className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border-hiyori bg-surface text-ink font-medium hover:bg-page transition-all shadow-sm">
                   <Download className="w-5 h-5" /> Import
                </button>

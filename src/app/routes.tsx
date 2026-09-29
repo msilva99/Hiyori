@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
 import { Home } from "./pages/Home";
 import { Decks } from "./pages/Decks";
+import { DecksLibrary } from "./pages/DecksLibrary";
 import { DeckDetail } from "./pages/DeckDetail";
 import { DeckStudy } from "./pages/DeckStudy";
 import { StudySettings } from "./pages/StudySettings";
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
          // These pages render inside Layout's <Outlet />.
          { index: true, Component: Home },
          { path: "decks", Component: Decks },
+         { path: "decks/library", Component: DecksLibrary },
          { path: "decks/:id", Component: DeckDetail },
          { path: "decks/:id/study", Component: DeckStudy },
          { path: "study", Component: StudySettings },
