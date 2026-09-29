@@ -110,11 +110,19 @@ export const useDecksLibraryStore = create<DecksLibraryStore>()(
 
 // Keeps "Downloaded" badges honest: whenever the local deck list changes (a
 // deck added, edited, or - the case this exists for - deleted), drop any
-// downloaded-source entry whose local deck is gone. Runs once at module load,
-// for the lifetime of the app, so every deletion path is covered automatically
-// rather than every UI call site having to remember to reconcile itself.
+// downloaded-source entry whose local deck is gone. Runs for the lifetime of
+// the app, so every deletion path is covered automatically rather than every
+// UI call site having to remember to reconcile itself.
 useDecksStore.subscribe((state, prevState) => {
    if (state.decks !== prevState.decks) {
       useDecksLibraryStore.getState().reconcileWithLocalDeckIds(state.decks.map((deck) => deck.id));
    }
 });
+
+// The subscription above only catches changes made *while the app is open* -
+// it can't help if the two stores somehow went out of sync while it was
+// closed (a manual localStorage edit, a future "reset my data" feature that
+// clears decksStore without going through deleteDeck, an interrupted write).
+// So also validate once, immediately, against whatever decksStore already
+// rehydrated to at load time, instead of only ever reconciling reactively.
+useDecksLibraryStore.getState().reconcileWithLocalDeckIds(useDecksStore.getState().decks.map((deck) => deck.id));
