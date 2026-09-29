@@ -521,11 +521,11 @@ export function Test() {
                      <XCircle className="w-5 h-5" /> Again
                      <kbd className="hidden sm:inline-flex items-center justify-center min-w-5 h-5 px-1 rounded bg-destructive-hover/10 text-[11px] font-bold">1</kbd>
                   </button>
-                  <button onClick={() => handleGrade("good")} className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-success text-white font-bold hover:bg-success-hover transition-all shadow-sm shadow-success/20">
+                  <button onClick={() => handleGrade("good")} className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20">
                      <Check className="w-5 h-5" /> Good
                      <kbd className="hidden sm:inline-flex items-center justify-center min-w-5 h-5 px-1 rounded bg-white/20 text-[11px] font-bold">2</kbd>
                   </button>
-                  <button onClick={() => handleGrade("easy")} className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-brand text-white font-bold hover:bg-brand-hover transition-all shadow-sm shadow-brand/20">
+                  <button onClick={() => handleGrade("easy")} className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-success text-white font-bold hover:bg-success-hover transition-all shadow-sm shadow-success/20">
                      <Zap className="w-5 h-5" /> Easy
                      <kbd className="hidden sm:inline-flex items-center justify-center min-w-5 h-5 px-1 rounded bg-white/20 text-[11px] font-bold">3</kbd>
                   </button>
