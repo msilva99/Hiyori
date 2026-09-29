@@ -236,7 +236,7 @@ export function DecksLibrary() {
             <motion.div
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
-               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+               className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6"
             >
                {catalog.map((deck, index) => {
                   const color = getDeckColor(index);
@@ -249,7 +249,7 @@ export function DecksLibrary() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: Math.min(index * 0.04, 0.3) }}
-                        className="bg-surface rounded-[28px] p-6 border border-border-hiyori shadow-sm hover:shadow-md transition-all flex flex-col min-w-[280px]"
+                        className="bg-surface rounded-[28px] p-6 border border-border-hiyori shadow-sm hover:shadow-md transition-all flex flex-col min-w-0"
                      >
                         <div className="flex items-start gap-4 mb-4">
                            <div
