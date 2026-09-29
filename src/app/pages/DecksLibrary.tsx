@@ -101,7 +101,7 @@ export function DecksLibrary() {
          const detail = await fetchDeckDetail(deck.id);
          // Copy only Hiyori's four card fields - importDeck spreads the card after
          // assigning a fresh local id, so the API's numeric id must not ride along.
-         importDeck(
+         const localDeck = importDeck(
             detail.title,
             detail.cards.map((card) => ({
                kanji: card.kanji,
@@ -110,7 +110,7 @@ export function DecksLibrary() {
                meaning: card.meaning,
             }))
          );
-         markDownloaded(deck.id);
+         markDownloaded(deck.id, localDeck.id);
          showToast({ kind: "success", text: `"${detail.title}" added to Your Decks` });
       } catch (err) {
          const text =
