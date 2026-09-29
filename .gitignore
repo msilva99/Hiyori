@@ -49,3 +49,6 @@ private
 # Environment and secrets
 .env
 .tauri/
+
+# Generated TS build cache
+*.tsbuildinfo

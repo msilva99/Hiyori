@@ -246,14 +246,29 @@ export function Test() {
                transition={{ delay: 0.05 }}
                className="bg-surface border border-border-hiyori rounded-3xl shadow-sm p-6"
             >
-               <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-brand" /> Decks
-               </h2>
+               <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-ink flex items-center gap-2">
+                     <Layers className="w-5 h-5 text-brand" /> Decks
+                  </h2>
+                  {testableDecks.length > 0 && (
+                     <button
+                        type="button"
+                        onClick={() =>
+                           setSelectedDeckIds(
+                              selectedDeckIds.size > 0 ? new Set() : new Set(testableDecks.map((deck) => deck.id))
+                           )
+                        }
+                        className="text-sm font-bold text-brand hover:underline cursor-pointer"
+                     >
+                        {selectedDeckIds.size > 0 ? "Deselect all" : "Select all"}
+                     </button>
+                  )}
+               </div>
 
                {testableDecks.length === 0 ? (
                   <p className="text-ink-muted">You don't have any decks with words yet.</p>
                ) : (
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                      {testableDecks.map((deck) => {
                         const isSelected = selectedDeckIds.has(deck.id);
 

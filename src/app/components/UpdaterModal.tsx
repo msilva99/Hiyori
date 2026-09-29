@@ -30,7 +30,7 @@ export function UpdaterModal() {
                </p>
                {update.body && (
                   <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-6 max-h-40 overflow-y-auto">
-                     <p className="text-xs font-bold text-ink-faint uppercase tracking-wider mb-2">What's new</p>
+                     <p className="text-xs font-bold text-ink-muted uppercase tracking-wider mb-2">What's new</p>
                      <p className="text-ink-muted text-sm whitespace-pre-wrap">{update.body}</p>
                   </div>
                )}

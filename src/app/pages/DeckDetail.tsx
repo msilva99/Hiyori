@@ -23,18 +23,42 @@ import { useDecksStore } from "../store/decksStore";
 import { Modal } from "../components/Modal";
 import type { Card } from "../data/types";
 
-const deckColorClasses = [
-   "bg-deck-pine",
-   "bg-deck-sand",
-   "bg-deck-sky",
-   "bg-deck-rose",
-   "bg-deck-cream",
-   "bg-deck-mist",
+// Written out as literal classes (not built with a template string) so Tailwind's
+// scanner can actually see and generate them - `${color}/20` at runtime doesn't work,
+// since nothing in the source text spells out e.g. "bg-deck-pine/20" for it to find.
+const deckColorTintClasses = [
+   "bg-deck-pine/20",
+   "bg-deck-sand/20",
+   "bg-deck-sky/20",
+   "bg-deck-rose/20",
+   "bg-deck-cream/20",
+   "bg-deck-mist/20",
 ];
 
-function getDeckColor(index: number) {
-   return deckColorClasses[index % deckColorClasses.length];
+// Same reasoning as the tint array above - `color.replace('bg-', 'text-')` at
+// runtime never spells out "text-deck-pine" in source text for Tailwind to find.
+const deckIconColorClasses = [
+   "text-deck-pine",
+   "text-deck-sand",
+   "text-deck-sky",
+   "text-deck-rose",
+   "text-deck-cream",
+   "text-deck-mist",
+];
+
+function getDeckColorTint(index: number) {
+   return deckColorTintClasses[index % deckColorTintClasses.length];
 }
+
+function getDeckIconColor(index: number) {
+   return deckIconColorClasses[index % deckIconColorClasses.length];
+}
+
+// Measured height of a display-mode row (incl. its 1px bottom border). Used both as the
+// virtualizer's size estimate and to size the scroll container to a whole number of rows,
+// so the default view never crops a row mid-way through like a plain rem-based max-height would.
+const WORD_ROW_HEIGHT_PX = 77;
+const VISIBLE_WORD_ROWS = 7;
 
 function getDeckMastery(deck: { masteryPerfectSessions: number }) {
    return Math.min(deck.masteryPerfectSessions, 5) * 20;
@@ -54,7 +78,8 @@ export function DeckDetail() {
    // The URL id selects the deck from shared data. This replaces the old one-page mock deck.
    const deckIndex = decks.findIndex((item) => item.id === id);
    const deck = deckIndex >= 0 ? decks[deckIndex] : undefined;
-   const deckColor = getDeckColor(Math.max(deckIndex, 0));
+   const deckColorTint = getDeckColorTint(Math.max(deckIndex, 0));
+   const deckIconColor = getDeckIconColor(Math.max(deckIndex, 0));
    const words = deck?.cards ?? [];
    const totalCards = words.length;
    const progress = deck ? getDeckMastery(deck) : 0;
@@ -106,7 +131,7 @@ export function DeckDetail() {
    const rowVirtualizer = useVirtualizer({
       count: filteredWords.length,
       getScrollElement: () => tableScrollRef.current,
-      estimateSize: () => 76,
+      estimateSize: () => WORD_ROW_HEIGHT_PX,
       overscan: 8,
    });
 
@@ -349,8 +374,8 @@ export function DeckDetail() {
                <div className="absolute right-0 top-0 w-64 h-64 bg-linear-to-bl from-border-hiyori/30 to-transparent rounded-bl-full -z-10" />
                
                <div className="flex items-center gap-6 z-10">
-                  <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 shadow-sm", deckColor, "bg-opacity-20")}>
-                     <Book className={cn("w-10 h-10", deckColor.replace("bg-", "text-"))} />
+                  <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center shrink-0 shadow-sm", deckColorTint)}>
+                     <Book className={cn("w-10 h-10", deckIconColor)} />
                   </div>
                   <div>
                      {isEditingInfo ? (
@@ -425,11 +450,12 @@ export function DeckDetail() {
                <div className="flex items-center gap-3">
                   <div className="relative">
                      <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
-                     <input 
-                        type="text" 
+                     <input
+                        type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search words..." 
+                        placeholder="Search words..."
+                        aria-label="Search words"
                         className="pl-10 pr-4 py-2.5 bg-surface border border-border-hiyori rounded-xl text-ink placeholder:text-ink-faint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all shadow-sm"
                      />
                   </div>
@@ -444,19 +470,23 @@ export function DeckDetail() {
                          <button
                            onClick={() => setShowBulkMenu(!showBulkMenu)}
                            onBlur={() => setTimeout(() => setShowBulkMenu(false), 150)}
+                           aria-haspopup="true"
+                           aria-expanded={showBulkMenu}
                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-hiyori bg-surface text-ink-muted font-medium hover:bg-surface-hover hover:text-ink transition-all shadow-sm cursor-pointer text-sm"
                         >
                            <CheckSquare className="w-4 h-4" /> Bulk Actions <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                          {showBulkMenu && (
-                            <div className="absolute right-0 top-full mt-1 w-44 bg-surface border border-border-hiyori shadow-xl rounded-2xl z-20 overflow-hidden py-1">
+                            <div role="menu" className="absolute right-0 top-full mt-1 w-44 bg-surface border border-border-hiyori shadow-xl rounded-2xl z-20 overflow-hidden py-1">
                                <button
+                                  role="menuitem"
                                   onClick={() => enterBulkMode('edit')}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-ink font-medium hover:bg-surface-hover transition-colors text-sm cursor-pointer"
                                >
                                   <Edit2 className="w-4 h-4 text-ink-muted" /> Bulk Edit
                                </button>
                                <button
+                                  role="menuitem"
                                   onClick={() => enterBulkMode('delete')}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-destructive font-medium hover:bg-destructive-surface transition-colors text-sm cursor-pointer"
                                >
@@ -502,7 +532,7 @@ export function DeckDetail() {
                 </div>
              )}
 
-             <div className="bg-surface border border-border-hiyori rounded-3xl shadow-sm overflow-hidden">
+             <div className="bg-surface border border-border-hiyori rounded-2xl shadow-sm overflow-hidden">
                <div className="overflow-x-auto">
                   <div role="table" style={{ minWidth: showBulkCheckboxColumn ? 640 : 600 }}>
                      <div role="row" className="grid border-b border-border-hiyori bg-page" style={{ gridTemplateColumns: wordTableColumns }}>
@@ -571,7 +601,11 @@ export function DeckDetail() {
                            <p className="text-ink-muted font-medium text-lg">No words found in this deck matching your search.</p>
                         </div>
                      ) : (
-                        <div ref={tableScrollRef} className="max-h-[32rem] overflow-y-auto">
+                        <div
+                           ref={tableScrollRef}
+                           className="overflow-y-auto rounded-b-2xl themed-scrollbar"
+                           style={{ maxHeight: WORD_ROW_HEIGHT_PX * VISIBLE_WORD_ROWS }}
+                        >
                            <div style={{ height: rowVirtualizer.getTotalSize(), position: "relative", width: "100%" }}>
                               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                                  const word = filteredWords[virtualRow.index];
@@ -685,14 +719,14 @@ export function DeckDetail() {
                                              </div>
                                              <div role="cell" className="px-6 py-4 flex flex-col justify-center">
                                                 <span className="text-ink-muted font-medium">{word.kana}</span>
-                                                <div className="text-xs text-ink-faint mt-1">{word.romaji}</div>
+                                                <div className="text-xs text-ink-muted mt-1">{word.romaji}</div>
                                              </div>
                                              <div role="cell" className="px-6 py-4 flex items-center">
                                                 <span className="text-ink font-medium">{word.meaning}</span>
                                              </div>
                                              <div role="cell" className="px-6 py-4 flex items-center justify-end">
                                                 {!isBulkMode && (
-                                                <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100! transition-opacity">
                                                     <button
                                                        onClick={() => handleEditWord(word)}
                                                       aria-label={`Edit ${word.kanji || word.kana || "word"}`}
@@ -733,7 +767,7 @@ export function DeckDetail() {
                   <h3 className="text-xl font-bold text-destructive-strong mb-2 flex items-center gap-2">
                      <Trash2 className="w-5 h-5" /> Danger Zone
                   </h3>
-                  <p className="text-destructive-hover/80">Once you delete a deck, there is no going back. All learning progress and words associated with this deck will be permanently lost.</p>
+                  <p className="text-destructive-hover">Once you delete a deck, there is no going back. All learning progress and words associated with this deck will be permanently lost.</p>
                </div>
                <button
                   onClick={handleDeleteDeck}
@@ -759,7 +793,7 @@ export function DeckDetail() {
                      <p className="text-ink-muted mb-6">This exact card is already in the deck and won't be added again.</p>
                      <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-6 space-y-1">
                         <p className="text-2xl font-black text-ink">{duplicateWarning.exactMatches[0].kanji}</p>
-                        <p className="text-ink-muted font-medium">{duplicateWarning.exactMatches[0].kana} · <span className="text-xs text-ink-faint">{duplicateWarning.exactMatches[0].romaji}</span></p>
+                        <p className="text-ink-muted font-medium">{duplicateWarning.exactMatches[0].kana} · <span className="text-xs text-ink-muted">{duplicateWarning.exactMatches[0].romaji}</span></p>
                         <p className="text-ink">{duplicateWarning.exactMatches[0].meaning}</p>
                      </div>
                      <button
@@ -779,15 +813,15 @@ export function DeckDetail() {
                      </div>
                      <p className="text-ink-muted mb-4">A card with the same kanji and kana already exists but with a different meaning:</p>
                      <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-2 space-y-1">
-                        <p className="text-xs font-bold text-ink-faint uppercase tracking-wider mb-2">Existing card</p>
+                        <p className="text-xs font-bold text-ink-muted uppercase tracking-wider mb-2">Existing card</p>
                         <p className="text-2xl font-black text-ink">{duplicateWarning.similarMatches[0].kanji}</p>
-                        <p className="text-ink-muted font-medium">{duplicateWarning.similarMatches[0].kana} · <span className="text-xs text-ink-faint">{duplicateWarning.similarMatches[0].romaji}</span></p>
+                        <p className="text-ink-muted font-medium">{duplicateWarning.similarMatches[0].kana} · <span className="text-xs text-ink-muted">{duplicateWarning.similarMatches[0].romaji}</span></p>
                         <p className="text-ink">{duplicateWarning.similarMatches[0].meaning}</p>
                      </div>
                      <div className="bg-brand/5 rounded-2xl border border-brand/20 p-4 mb-6 space-y-1">
                         <p className="text-xs font-bold text-brand uppercase tracking-wider mb-2">New card</p>
                         <p className="text-2xl font-black text-ink">{duplicateWarning.newCard.kanji}</p>
-                        <p className="text-ink-muted font-medium">{duplicateWarning.newCard.kana} · <span className="text-xs text-ink-faint">{duplicateWarning.newCard.romaji}</span></p>
+                        <p className="text-ink-muted font-medium">{duplicateWarning.newCard.kana} · <span className="text-xs text-ink-muted">{duplicateWarning.newCard.romaji}</span></p>
                         <p className="text-ink">{duplicateWarning.newCard.meaning}</p>
                      </div>
                      <div className="flex gap-3">
@@ -821,7 +855,7 @@ export function DeckDetail() {
               </div>
               <div className="bg-page rounded-2xl border border-border-hiyori p-4 mb-6 space-y-1">
                  <p className="text-2xl font-black text-ink">{deleteConfirm.kanji}</p>
-                 <p className="text-ink-muted font-medium">{deleteConfirm.kana} · <span className="text-xs text-ink-faint">{deleteConfirm.romaji}</span></p>
+                 <p className="text-ink-muted font-medium">{deleteConfirm.kana} · <span className="text-xs text-ink-muted">{deleteConfirm.romaji}</span></p>
                  <p className="text-ink">{deleteConfirm.meaning}</p>
               </div>
               <div className="flex gap-3">
@@ -872,7 +906,7 @@ export function DeckDetail() {
 
       {/* Export Toast */}
       {showToast && createPortal(
-         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-success text-white rounded-2xl shadow-lg border border-success-hover">
+         <div role="status" aria-live="polite" className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-success text-white rounded-2xl shadow-lg border border-success-hover">
             <CheckCircle className="w-5 h-5 shrink-0" />
             <span className="font-bold text-sm">Deck exported successfully!</span>
          </div>,
